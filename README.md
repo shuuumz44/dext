@@ -11,6 +11,24 @@
     but can be toggled off.
     It also allows exporting a file into a CSV.
 
+# DEPENDENCIES
+    * mysql
+
+# SETUP
+    * git clone/etc.
+    * run go get github.com/go-sql-driver/mysql
+    * using the mysql CLI:
+        * CREATE DATABASE [database_name]
+        * USE [database_name]
+        * source ./init.sql
+    * mysql has now created a table named "expenses", inside of the database you created. 
+    The user is "root".
+    The password is read from an environment variable, DBPASS.
+    * To export a value into an environment variable:
+        - On linux/mac: export VARIABLE=value
+        - On Windows:   set VARIABLE=value
+        (do not put any spaces between the equals sign.)
+
 # OPTIONS
     **File Input/Output**
         **-o open**
@@ -34,6 +52,9 @@
             Filter the displayed expenses by their category.
 
 # TODO
-    * make GetConfig take optional database argument 
+
+# IDEAS
+    * multiple tables/databases
+    * manage user credentials/authentication 
 
 # NOTES
