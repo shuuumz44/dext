@@ -2,7 +2,7 @@
     dext: Expense Tracker
 
 # SYNOPSIS
-    **dext** [OPTION] ... 
+    **dext** \[COMMAND\] \[OPTION...\] 
 
 # DESCRIPTION
     **dext** manipulates (CRUD) a database of expenses.
@@ -32,7 +32,7 @@
 # OPTIONS
     **File Input/Output**
         **-o open**
-            opens a database for operating on.
+            opens a table for operating on.
 
     **CRUD Operations**
         **-a add**
@@ -52,9 +52,20 @@
             Filter the displayed expenses by their category.
 
 # TODO
+    * implement add
+    * implement list
+    * implement summary
+    * implement update
+    * implement delete
+    * add writing to CSV
+    * add filtering 
 
 # IDEAS
+    * find a better way to abstract away argument parsing
     * multiple tables/databases
     * manage user credentials/authentication 
+    * softlock floats to round to 2 decimals, add an option to change precision
 
 # NOTES
+    * mysql authentication can be a little finnicky at first. Make sure you can login in the command prompt,
+    check the creds with status, then copy them to the program / as an env variable.
