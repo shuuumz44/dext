@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/go-sql-driver/mysql"
 )
@@ -90,7 +91,7 @@ func GetConfig() (*sql.DB, error) {
 	cfg.Passwd = os.Getenv("DBPASS")
 	cfg.Net = "tcp"
 	cfg.Addr = "127.0.0.1:3306"
-	cfg.DBName = "expenses"
+	cfg.DBName = "account"
 
 	db, err := sql.Open("mysql", cfg.FormatDSN())
 	if err != nil {
@@ -101,7 +102,6 @@ func GetConfig() (*sql.DB, error) {
 }
 
 func AddExp(db *sql.DB, args []string) (error) {
-	// variables
 	var description string
 	var amount 		int
 
@@ -120,8 +120,12 @@ func AddExp(db *sql.DB, args []string) (error) {
 	}
 
 	// add query
+	_, exeErr := db.Exec("INSERT INTO expenses (purchased, description, amount) VALUES (?, ?, ?)", time.Now(), description, amount)
+	if exeErr != nil {
+		return exeErr
+	}
 
-	fmt.Println("added: " + description + " - " + strconv.Itoa(amount))
+	fmt.Println("added: " + description + " - $" + strconv.Itoa(amount))
 	return nil
 }
 
