@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"time"
+	//"time"
 
 	"github.com/go-sql-driver/mysql"
 )
@@ -62,16 +62,16 @@ func main() {
 		opErr = AddExp(db, args)
 
 	case "list":
-		opErr = ListExp(db)
+		opErr = ListExp(db, args)
 
 	case "summary":
-		opErr = SumExp(db)
+		opErr = SumExp(db, args)
 
 	case "update":
-		opErr = UpdateExp(db)
+		opErr = UpdateExp(db, args)
 
 	case "delete":
-		opErr = DeleteExp(db)
+		opErr = DeleteExp(db, args)
 
 	default:
 		fmt.Println(help)
@@ -88,7 +88,8 @@ func main() {
 func GetConfig() (*sql.DB, error) {
 	cfg := mysql.NewConfig()
 	cfg.User = "user"
-	cfg.Passwd = os.Getenv("DBPASS")
+	cfg.Passwd = "sincere-aquarium"
+	// os.Getenv() stopped working. >:(
 	cfg.Net = "tcp"
 	cfg.Addr = "127.0.0.1:3306"
 	cfg.DBName = "account"
@@ -104,13 +105,16 @@ func GetConfig() (*sql.DB, error) {
 func AddExp(db *sql.DB, args []string) (error) {
 	var description string
 	var amount 		int
+	//var date		string
 
 	descriptionUsage 	:= "the name of the expense"
 	amountUsage 		:= "the cost of the expense"
+	//dateUsage			:= "the date of the transaction"
 
 	fs := flag.NewFlagSet("add", flag.ExitOnError)
 	fs.StringVar(&description, "description", "", descriptionUsage)
 	fs.StringVar(&description, "d", "", descriptionUsage)
+	//fs.StringVar(&date, "date", "", dateUsage)
 
 	fs.IntVar(&amount, "amount", 0, amountUsage)
 	fs.IntVar(&amount, "a", 0, amountUsage)
@@ -119,8 +123,7 @@ func AddExp(db *sql.DB, args []string) (error) {
 		return err
 	}
 
-	// add query
-	_, exeErr := db.Exec("INSERT INTO expenses (purchased, description, amount) VALUES (?, ?, ?)", time.Now(), description, amount)
+	_, exeErr := db.Exec("INSERT INTO expenses (description, amount) VALUES (?, ?)", description, amount)
 	if exeErr != nil {
 		return exeErr
 	}
@@ -129,22 +132,50 @@ func AddExp(db *sql.DB, args []string) (error) {
 	return nil
 }
 
-func ListExp(db *sql.DB) (error) {
+func ListExp(db *sql.DB, args []string) (error) {
+	// var filter string
+	// filterUsage := "tag(s) to filter by"
+
+	fs := flag.NewFlagSet("list", flag.ExitOnError)
+	// fs.StringVar(&filter, "filter", NULL, filterUsage)
+	// fs.StringVar(&filter, "f", NULL, filterUsage)
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	rows, exeErr := db.Query("SELECT * FROM expenses")
+	if exeErr != nil {
+		return exeErr
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var exp Expense
+
+		scanErr := rows.Scan(&exp.ID, &exp.Date, &exp.Desc, &exp.Amount) 
+		if scanErr != nil {
+			return scanErr
+		}
+		fmt.Printf("%d %s:\t\t$%.2f\t\t%s\n", exp.ID, exp.Desc, exp.Amount, exp.Date)
+		// **instead of exp.Date.GoString()
+		// determine how to hold/format mysql's DATETIME type
+	}
+
+	return nil
+}
+
+func SumExp(db *sql.DB, args []string) (error) {
 	//
 	return nil
 }
 
-func SumExp(db *sql.DB) (error) {
+func UpdateExp(db *sql.DB, args []string) (error) {
 	//
 	return nil
 }
 
-func UpdateExp(db *sql.DB) (error) {
-	//
-	return nil
-}
-
-func DeleteExp(db *sql.DB) (error) {
+func DeleteExp(db *sql.DB, args []string) (error) {
 	//
 	return nil
 }

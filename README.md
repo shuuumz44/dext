@@ -52,11 +52,11 @@
             Filter the displayed expenses by their category.
 
 # TODO
-    * implement add
     * implement list
     * implement summary
     * implement update
     * implement delete
+    * make dates added manually
     * add writing to CSV
     * add filtering 
 
@@ -65,7 +65,9 @@
     * multiple tables/databases
     * manage user credentials/authentication 
     * softlock floats to round to 2 decimals, add an option to change precision
+    * option to format output
 
 # NOTES
     * mysql authentication can be a little finnicky at first. Make sure you can login in the command prompt,
     check the creds with status, then copy them to the program / as an env variable.
+    * argument parsing is basically one and the same for building out the specific function. It doesn't have to be, it can and should probably be abstracted, but it's okay for now

@@ -1,7 +1,7 @@
 DROP TABLE IF EXISTS expenses;
 CREATE TABLE expenses (
 	id				INT AUTO_INCREMENT 	NOT NULL,
-	purchased		DATE,
+	purchased		DATETIME 			DEFAULT	CURRENT_TIMESTAMP,
 	description		VARCHAR(256),
 	amount			INT					NOT NULL	DEFAULT 0,
 	PRIMARY KEY		(`id`)
