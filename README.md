@@ -52,13 +52,12 @@
             Filter the displayed expenses by their category.
 
 # TODO
-    * implement list
-    * implement summary
     * implement update
     * implement delete
     * make dates added manually
     * add writing to CSV
     * add filtering 
+    * properly format list output
 
 # IDEAS
     * find a better way to abstract away argument parsing
@@ -68,6 +67,6 @@
     * option to format output
 
 # NOTES
-    * mysql authentication can be a little finnicky at first. Make sure you can login in the command prompt,
-    check the creds with status, then copy them to the program / as an env variable.
+    * mysql authentication can be a little finnicky at first. Make sure you can login in the command prompt, check the creds with status, then copy them to the program / as an env variable.
     * argument parsing is basically one and the same for building out the specific function. It doesn't have to be, it can and should probably be abstracted, but it's okay for now
+    * go's sql package recognizes mysql DATETIMES as time.Time types. When calling row(s).Scan, this can be stored into pointers to time.Time, interface{}, string, or []byte. Warning though, time.Time types (and sql.NullTime by extension) have to be used with the sql.Scanner interface.

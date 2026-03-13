@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"strconv"
-	//"time"
 
 	"github.com/go-sql-driver/mysql"
 )
@@ -44,7 +43,6 @@ func main() {
 		return
 	}
 	
-
 	db, confErr := GetConfig()
 	if confErr != nil {
 		log.Fatal("database connection error: ", confErr)
@@ -159,14 +157,40 @@ func ListExp(db *sql.DB, args []string) (error) {
 		}
 		fmt.Printf("%d %s:\t\t$%.2f\t\t%s\n", exp.ID, exp.Desc, exp.Amount, exp.Date)
 		// **instead of exp.Date.GoString()
-		// determine how to hold/format mysql's DATETIME type
 	}
 
 	return nil
 }
 
 func SumExp(db *sql.DB, args []string) (error) {
-	//
+	var total float64 = 0
+	// var filter string
+	// filterUsage := "tag(s) to filter by"
+
+	fs := flag.NewFlagSet("summary", flag.ExitOnError)
+	// fs.StringVar(&filter, "filter", NULL, filterUsage)
+	// fs.StringVar(&filter, "f", NULL, filterUsage)
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	rows, exeErr := db.Query("SELECT * FROM expenses")
+	if exeErr != nil {
+		return exeErr
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var exp Expense
+		scanErr := rows.Scan(&exp.ID, &exp.Date, &exp.Desc, &exp.Amount) 
+		if scanErr != nil {
+			return scanErr
+		}
+		total += exp.Amount
+	}
+	fmt.Println("Total: ", total)
+
 	return nil
 }
 
