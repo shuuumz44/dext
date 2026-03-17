@@ -25,9 +25,8 @@
     The user is "root".
     The password is read from an environment variable, DBPASS.
     * To export a value into an environment variable:
-        - On linux/mac: export VARIABLE=value
-        - On Windows:   set VARIABLE=value
-        (do not put any spaces between the equals sign.)
+        - Linux/Mac: export VARIABLE=value
+        - Windows:   set VARIABLE=value
 
 # OPTIONS
     **File Input/Output**

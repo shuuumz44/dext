@@ -102,7 +102,7 @@ func GetConfig() (*sql.DB, error) {
 
 func AddExp(db *sql.DB, args []string) (error) {
 	var description string
-	var amount 		int
+	var amount 		float64
 	//var date		string
 
 	descriptionUsage 	:= "the name of the expense"
@@ -114,8 +114,8 @@ func AddExp(db *sql.DB, args []string) (error) {
 	fs.StringVar(&description, "d", "", descriptionUsage)
 	//fs.StringVar(&date, "date", "", dateUsage)
 
-	fs.IntVar(&amount, "amount", 0, amountUsage)
-	fs.IntVar(&amount, "a", 0, amountUsage)
+	fs.Float64Var(&amount, "amount", 0, amountUsage)
+	fs.Float64Var(&amount, "a", 0, amountUsage)
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -126,7 +126,7 @@ func AddExp(db *sql.DB, args []string) (error) {
 		return exeErr
 	}
 
-	fmt.Println("added: " + description + " - $" + strconv.Itoa(amount))
+	fmt.Println("added: " + description + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
 	return nil
 }
 
@@ -142,6 +142,7 @@ func ListExp(db *sql.DB, args []string) (error) {
 		return err
 	}
 
+	// eventually alter query to filter for tags.
 	rows, exeErr := db.Query("SELECT * FROM expenses")
 	if exeErr != nil {
 		return exeErr
@@ -195,11 +196,58 @@ func SumExp(db *sql.DB, args []string) (error) {
 }
 
 func UpdateExp(db *sql.DB, args []string) (error) {
-	//
+	var id 		int
+	var amount 	float64
+	//var date	string
+
+	idUsage 			:= "the ID of the expense"
+	amountUsage 		:= "the cost of the expense"
+	//dateUsage			:= "the date of the transaction"
+
+	fs := flag.NewFlagSet("update", flag.ExitOnError)
+	fs.IntVar(&id, "id", 0, idUsage)
+	//fs.StringVar(&date, "date", "", dateUsage)
+
+	fs.Float64Var(&amount, "amount", 0, amountUsage)
+	fs.Float64Var(&amount, "a", 0, amountUsage)
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	op := "UPDATE expenses SET amount=? WHERE id=?"
+	_, exeErr := db.Exec(op, amount, id)
+	if exeErr != nil {
+		return exeErr
+	}
+
+	//fmt.Println("updated: " + description + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
 	return nil
-}
+} 
 
 func DeleteExp(db *sql.DB, args []string) (error) {
-	//
+	var id 		int
+	//var amount 	float64
+	//var date	string
+
+	idUsage 			:= "the ID of the expense"
+	//amountUsage 		:= "the cost of the expense"
+	//dateUsage			:= "the date of the transaction"
+
+	fs := flag.NewFlagSet("delete", flag.ExitOnError)
+	fs.IntVar(&id, "id", 0, idUsage)
+	//fs.StringVar(&date, "date", "", dateUsage)
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	op := "DELETE FROM expenses WHERE id=?"
+	_, exeErr := db.Exec(op, id)
+	if exeErr != nil {
+		return exeErr
+	}
+
+	//fmt.Println("deleted: " + description + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
 	return nil
 }
