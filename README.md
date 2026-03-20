@@ -51,21 +51,26 @@
             Filter the displayed expenses by their category.
 
 # TODO
-    * implement update
-    * implement delete
-    * make dates added manually
+    * make dates added manually (optionally)
     * add writing to CSV
     * add filtering 
     * properly format list output
+    * auto update ids
+
+# ERRORS
+    * Amount is not set to a float in schema
+    * GetConfig() does not accept os.Getenv() for the password.
+    * inputting non-existant flags is accepted
+    * error message does not combine the usage message of long and shorthand flag names
 
 # IDEAS
+    * keep table info in a struct to efficiently read stuff like amount of rows
     * find a better way to abstract away argument parsing
     * multiple tables/databases
     * manage user credentials/authentication 
-    * softlock floats to round to 2 decimals, add an option to change precision
     * option to format output
 
 # NOTES
-    * mysql authentication can be a little finnicky at first. Make sure you can login in the command prompt, check the creds with status, then copy them to the program / as an env variable.
+    * mysql authentication can be a little finnicky at first. Make sure you can login at the command prompt, check the creds with status, then copy them to the program / as an env variable.
     * argument parsing is basically one and the same for building out the specific function. It doesn't have to be, it can and should probably be abstracted, but it's okay for now
     * go's sql package recognizes mysql DATETIMES as time.Time types. When calling row(s).Scan, this can be stored into pointers to time.Time, interface{}, string, or []byte. Warning though, time.Time types (and sql.NullTime by extension) have to be used with the sql.Scanner interface.

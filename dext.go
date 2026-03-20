@@ -33,15 +33,18 @@ OPTIONS:
 	
 	-a, --amount
 		the cost of an expense
+
+	--id
+		the identifying number of an expense
+	
+	-f, --filter
+		the tag(s) to filter by
 `
 
 
 func main() {
 	args := os.Args[2:]
-	amnt := len(args)
-	if (amnt > 4) {
-		return
-	}
+	//amnt := len(args)
 	
 	db, confErr := GetConfig()
 	if confErr != nil {
@@ -118,9 +121,14 @@ func AddExp(db *sql.DB, args []string) (error) {
 	fs.Float64Var(&amount, "a", 0, amountUsage)
 
 	if err := fs.Parse(args); err != nil {
+		fmt.Errorf("parse: ", err)
 		return err
 	}
 
+	if description=="" && amount==0 {
+		fmt.Println("No value specified.")
+		return nil
+	}
 	_, exeErr := db.Exec("INSERT INTO expenses (description, amount) VALUES (?, ?)", description, amount)
 	if exeErr != nil {
 		return exeErr
@@ -156,8 +164,7 @@ func ListExp(db *sql.DB, args []string) (error) {
 		if scanErr != nil {
 			return scanErr
 		}
-		fmt.Printf("%d %s:\t\t$%.2f\t\t%s\n", exp.ID, exp.Desc, exp.Amount, exp.Date)
-		// **instead of exp.Date.GoString()
+		fmt.Printf("%d\t%s:\t\t$%.2f\t\t%s\n", exp.ID, exp.Desc, exp.Amount, exp.Date)
 	}
 
 	return nil
@@ -173,6 +180,7 @@ func SumExp(db *sql.DB, args []string) (error) {
 	// fs.StringVar(&filter, "f", NULL, filterUsage)
 
 	if err := fs.Parse(args); err != nil {
+		fmt.Errorf("parse: ", err)
 		return err
 	}
 
@@ -196,27 +204,48 @@ func SumExp(db *sql.DB, args []string) (error) {
 }
 
 func UpdateExp(db *sql.DB, args []string) (error) {
-	var id 		int
-	var amount 	float64
-	//var date	string
+	var id 			int
+	var amount 		float64
+	var description	string
+	//var date		string
 
 	idUsage 			:= "the ID of the expense"
 	amountUsage 		:= "the cost of the expense"
+	descriptionUsage 	:= "the name of the expense"
 	//dateUsage			:= "the date of the transaction"
 
 	fs := flag.NewFlagSet("update", flag.ExitOnError)
 	fs.IntVar(&id, "id", 0, idUsage)
+
+	fs.StringVar(&description, "description", "", descriptionUsage)
+	fs.StringVar(&description, "d", "", descriptionUsage)
 	//fs.StringVar(&date, "date", "", dateUsage)
 
 	fs.Float64Var(&amount, "amount", 0, amountUsage)
 	fs.Float64Var(&amount, "a", 0, amountUsage)
 
 	if err := fs.Parse(args); err != nil {
+		fmt.Errorf("parse: ", err)
 		return err
 	}
 
-	op := "UPDATE expenses SET amount=? WHERE id=?"
-	_, exeErr := db.Exec(op, amount, id)
+	updateDescription := (description != "")
+	updateAmount := (amount != 0) 
+	if id <= 0 || (!updateDescription && !updateAmount) {
+		fmt.Println("No changes specified.")
+		return nil
+	}
+
+	var exeErr error
+	switch {
+	case updateDescription && updateAmount:
+		_, exeErr = db.Exec("UPDATE expenses SET description=?, amount=? WHERE id=?", description, amount, id)
+	case updateDescription:
+		_, exeErr = db.Exec("UPDATE expenses SET description=? WHERE id=?", description, id)
+	case updateAmount:
+		_, exeErr = db.Exec("UPDATE expenses SET amount=? WHERE id=?", amount, id)
+	}
+
 	if exeErr != nil {
 		return exeErr
 	}
@@ -239,7 +268,13 @@ func DeleteExp(db *sql.DB, args []string) (error) {
 	//fs.StringVar(&date, "date", "", dateUsage)
 
 	if err := fs.Parse(args); err != nil {
+		fmt.Errorf("parse: ", err)
 		return err
+	}
+
+	if id <= 0 {
+		fmt.Println("id out of bounds.")
+		return nil
 	}
 
 	op := "DELETE FROM expenses WHERE id=?"
