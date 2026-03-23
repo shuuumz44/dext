@@ -51,16 +51,14 @@
             Filter the displayed expenses by their category.
 
 # TODO
-    * make dates added manually (optionally)
-    * add writing to CSV
-    * add filtering 
+    * make dates added manually (if specified)
     * properly format list output
     * auto update ids
+    * add writing to CSV
+    * add filtering 
 
 # ERRORS
-    * Amount is not set to a float in schema
     * GetConfig() does not accept os.Getenv() for the password.
-    * inputting non-existant flags is accepted
     * error message does not combine the usage message of long and shorthand flag names
 
 # IDEAS
@@ -69,8 +67,10 @@
     * multiple tables/databases
     * manage user credentials/authentication 
     * option to format output
+    * elaborate date parsing
 
 # NOTES
     * mysql authentication can be a little finnicky at first. Make sure you can login at the command prompt, check the creds with status, then copy them to the program / as an env variable.
     * argument parsing is basically one and the same for building out the specific function. It doesn't have to be, it can and should probably be abstracted, but it's okay for now
-    * go's sql package recognizes mysql DATETIMES as time.Time types. When calling row(s).Scan, this can be stored into pointers to time.Time, interface{}, string, or []byte. Warning though, time.Time types (and sql.NullTime by extension) have to be used with the sql.Scanner interface.
+    * go's sql package recognizes mysql DATETIMEs as time.Time types. When calling row(s).Scan, this can be stored into pointers to time.Time, interface{}, string, or []byte. Warning though, time.Time types (and sql.NullTime by extension) have to be used with the sql.Scanner interface. Despite all this, it is easiest to store DATETIMEs as strings.
+    * sql accepts DATETIME values as strings or integers. Strings are accepted as 'YYYY-MM-DD hh:mm:ss (with an optional fraction part). Time is in military time. If the time is omitted, it is set to 0:00:00.

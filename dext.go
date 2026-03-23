@@ -14,7 +14,7 @@ import (
 type Expense struct {
 	ID 		int64
 	Date	string
-	Desc	string
+	Name	string
 	Amount	float64
 }
 
@@ -28,8 +28,11 @@ COMMANDS:
 		delete
 
 OPTIONS:
-	-d, --description
+	-n, --name
 		the name of an expense
+
+	-d, --date
+		the date an expense was made
 	
 	-a, --amount
 		the cost of an expense
@@ -104,18 +107,21 @@ func GetConfig() (*sql.DB, error) {
 }
 
 func AddExp(db *sql.DB, args []string) (error) {
-	var description string
-	var amount 		float64
-	//var date		string
+	var name	string
+	var amount 	float64
+	var date	string
 
-	descriptionUsage 	:= "the name of the expense"
-	amountUsage 		:= "the cost of the expense"
-	//dateUsage			:= "the date of the transaction"
+	nameUsage 		:= "the name of the expense"
+	amountUsage 	:= "the cost of the expense"
+	dateUsage		:= "the date of the transaction"
 
 	fs := flag.NewFlagSet("add", flag.ExitOnError)
-	fs.StringVar(&description, "description", "", descriptionUsage)
-	fs.StringVar(&description, "d", "", descriptionUsage)
-	//fs.StringVar(&date, "date", "", dateUsage)
+
+	fs.StringVar(&name, "name", "", nameUsage)
+	fs.StringVar(&name, "n", "", nameUsage)
+
+	fs.StringVar(&date, "date", "", dateUsage)
+	fs.StringVar(&date, "d", "", dateUsage)
 
 	fs.Float64Var(&amount, "amount", 0, amountUsage)
 	fs.Float64Var(&amount, "a", 0, amountUsage)
@@ -125,16 +131,23 @@ func AddExp(db *sql.DB, args []string) (error) {
 		return err
 	}
 
-	if description=="" && amount==0 {
+	if name=="" && amount==0 {
 		fmt.Println("No value specified.")
 		return nil
 	}
-	_, exeErr := db.Exec("INSERT INTO expenses (description, amount) VALUES (?, ?)", description, amount)
+
+	var exeErr error
+	if date == "" {
+		_, exeErr = db.Exec("INSERT INTO expenses (name, amount) VALUES (?, ?)", name, amount)
+	} else { 
+		_, exeErr = db.Exec("INSERT INTO expenses (name, amount, purchased) VALUES (?, ?, ?)", name, amount, date)
+	}
+
 	if exeErr != nil {
 		return exeErr
 	}
 
-	fmt.Println("added: " + description + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
+	fmt.Println("added: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
 	return nil
 }
 
@@ -160,11 +173,11 @@ func ListExp(db *sql.DB, args []string) (error) {
 	for rows.Next() {
 		var exp Expense
 
-		scanErr := rows.Scan(&exp.ID, &exp.Date, &exp.Desc, &exp.Amount) 
+		scanErr := rows.Scan(&exp.ID, &exp.Date, &exp.Name, &exp.Amount) 
 		if scanErr != nil {
 			return scanErr
 		}
-		fmt.Printf("%d\t%s:\t\t$%.2f\t\t%s\n", exp.ID, exp.Desc, exp.Amount, exp.Date)
+		fmt.Printf("%d\t%s:\t\t$%.2f\t\t%s\n", exp.ID, exp.Name, exp.Amount, exp.Date)
 	}
 
 	return nil
@@ -192,7 +205,7 @@ func SumExp(db *sql.DB, args []string) (error) {
 
 	for rows.Next() {
 		var exp Expense
-		scanErr := rows.Scan(&exp.ID, &exp.Date, &exp.Desc, &exp.Amount) 
+		scanErr := rows.Scan(&exp.ID, &exp.Date, &exp.Name, &exp.Amount) 
 		if scanErr != nil {
 			return scanErr
 		}
@@ -204,22 +217,22 @@ func SumExp(db *sql.DB, args []string) (error) {
 }
 
 func UpdateExp(db *sql.DB, args []string) (error) {
-	var id 			int
-	var amount 		float64
-	var description	string
-	//var date		string
+	var id 		int
+	var amount 	float64
+	var name	string
+	var date	string
 
 	idUsage 			:= "the ID of the expense"
 	amountUsage 		:= "the cost of the expense"
-	descriptionUsage 	:= "the name of the expense"
-	//dateUsage			:= "the date of the transaction"
+	nameUsage 	:= "the name of the expense"
+	dateUsage			:= "the date of the transaction"
 
 	fs := flag.NewFlagSet("update", flag.ExitOnError)
 	fs.IntVar(&id, "id", 0, idUsage)
 
-	fs.StringVar(&description, "description", "", descriptionUsage)
-	fs.StringVar(&description, "d", "", descriptionUsage)
-	//fs.StringVar(&date, "date", "", dateUsage)
+	fs.StringVar(&name, "name", "", nameUsage)
+	fs.StringVar(&name, "d", "", nameUsage)
+	fs.StringVar(&date, "date", "", dateUsage)
 
 	fs.Float64Var(&amount, "amount", 0, amountUsage)
 	fs.Float64Var(&amount, "a", 0, amountUsage)
@@ -229,19 +242,19 @@ func UpdateExp(db *sql.DB, args []string) (error) {
 		return err
 	}
 
-	updateDescription := (description != "")
+	updateName := (name != "")
 	updateAmount := (amount != 0) 
-	if id <= 0 || (!updateDescription && !updateAmount) {
+	if id <= 0 || (!updateName && !updateAmount) {
 		fmt.Println("No changes specified.")
 		return nil
 	}
 
 	var exeErr error
 	switch {
-	case updateDescription && updateAmount:
-		_, exeErr = db.Exec("UPDATE expenses SET description=?, amount=? WHERE id=?", description, amount, id)
-	case updateDescription:
-		_, exeErr = db.Exec("UPDATE expenses SET description=? WHERE id=?", description, id)
+	case updateName && updateAmount:
+		_, exeErr = db.Exec("UPDATE expenses SET name=?, amount=? WHERE id=?", name, amount, id)
+	case updateName:
+		_, exeErr = db.Exec("UPDATE expenses SET name=? WHERE id=?", name, id)
 	case updateAmount:
 		_, exeErr = db.Exec("UPDATE expenses SET amount=? WHERE id=?", amount, id)
 	}
@@ -250,7 +263,7 @@ func UpdateExp(db *sql.DB, args []string) (error) {
 		return exeErr
 	}
 
-	//fmt.Println("updated: " + description + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
+	fmt.Println("updated: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
 	return nil
 } 
 
@@ -283,6 +296,6 @@ func DeleteExp(db *sql.DB, args []string) (error) {
 		return exeErr
 	}
 
-	//fmt.Println("deleted: " + description + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
+	//fmt.Println("deleted: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
 	return nil
 }
