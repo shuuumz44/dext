@@ -51,19 +51,17 @@
             Filter the displayed expenses by their category.
 
 # TODO
-    * make dates added manually (if specified)
+    * abstract away argument parsing (DRY)
     * properly format list output
-    * auto update ids
+    * auto update/order ids
     * add writing to CSV
     * add filtering 
 
 # ERRORS
-    * GetConfig() does not accept os.Getenv() for the password.
     * error message does not combine the usage message of long and shorthand flag names
 
 # IDEAS
     * keep table info in a struct to efficiently read stuff like amount of rows
-    * find a better way to abstract away argument parsing
     * multiple tables/databases
     * manage user credentials/authentication 
     * option to format output

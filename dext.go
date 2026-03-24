@@ -92,8 +92,7 @@ func main() {
 func GetConfig() (*sql.DB, error) {
 	cfg := mysql.NewConfig()
 	cfg.User = "user"
-	cfg.Passwd = "sincere-aquarium"
-	// os.Getenv() stopped working. >:(
+	cfg.Passwd = os.Getenv("DBPASS") 
 	cfg.Net = "tcp"
 	cfg.Addr = "127.0.0.1:3306"
 	cfg.DBName = "account"
@@ -106,17 +105,28 @@ func GetConfig() (*sql.DB, error) {
 	return db, nil
 }
 
+func FlagParam[T any](fs *flag.FlagSet, v T, name string, usage string) {
+	// get first character for shorthand
+	// determine flag type and call appropriate fs.Variable function
+}
+
 func AddExp(db *sql.DB, args []string) (error) {
 	var name	string
 	var amount 	float64
 	var date	string
 
-	nameUsage 		:= "the name of the expense"
-	amountUsage 	:= "the cost of the expense"
-	dateUsage		:= "the date of the transaction"
+	nameUsage := "the name of the expense"
+	amountUsage := "the cost of the expense"
+	dateUsage := "the date of the transaction"
 
 	fs := flag.NewFlagSet("add", flag.ExitOnError)
 
+	/*
+	FlagParam(fs, &name, 	"name", 	"the name of the expense")
+	FlagParam(fs, &amount, 	"amount", 	"the cost of the expense")
+	FlagParam(fs, &date, 	"date", 	"the date of the transaction")
+	*/
+	
 	fs.StringVar(&name, "name", "", nameUsage)
 	fs.StringVar(&name, "n", "", nameUsage)
 
@@ -222,10 +232,10 @@ func UpdateExp(db *sql.DB, args []string) (error) {
 	var name	string
 	var date	string
 
-	idUsage 			:= "the ID of the expense"
-	amountUsage 		:= "the cost of the expense"
-	nameUsage 	:= "the name of the expense"
-	dateUsage			:= "the date of the transaction"
+	idUsage 		:= "the ID of the expense"
+	amountUsage		:= "the cost of the expense"
+	nameUsage 		:= "the name of the expense"
+	dateUsage		:= "the date of the transaction"
 
 	fs := flag.NewFlagSet("update", flag.ExitOnError)
 	fs.IntVar(&id, "id", 0, idUsage)
