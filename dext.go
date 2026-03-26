@@ -105,36 +105,31 @@ func GetConfig() (*sql.DB, error) {
 	return db, nil
 }
 
-func FlagParam[T any](fs *flag.FlagSet, v T, name string, usage string) {
-	// get first character for shorthand
-	// determine flag type and call appropriate fs.Variable function
-}
-
 func AddExp(db *sql.DB, args []string) (error) {
 	var name	string
 	var amount 	float64
 	var date	string
 
-	nameUsage := "the name of the expense"
+	nameUsage 	:= "the name of the expense"
 	amountUsage := "the cost of the expense"
-	dateUsage := "the date of the transaction"
+	dateUsage 	:= "the date of the transaction"
 
 	fs := flag.NewFlagSet("add", flag.ExitOnError)
+	fs.Usage = func() {
+		fmt.Println("add usage:")
+		fmt.Printf("-n, --name\n\t%s\n", nameUsage)
+		fmt.Printf("-a, --amount\n\t%s\n", amountUsage)
+		fmt.Printf("-d, --date\n\t%s\n", dateUsage)
+	}
 
-	/*
-	FlagParam(fs, &name, 	"name", 	"the name of the expense")
-	FlagParam(fs, &amount, 	"amount", 	"the cost of the expense")
-	FlagParam(fs, &date, 	"date", 	"the date of the transaction")
-	*/
-	
-	fs.StringVar(&name, "name", "", nameUsage)
-	fs.StringVar(&name, "n", "", nameUsage)
+	fs.StringVar(&name, "name", "", "")
+	fs.StringVar(&name, "n", "", "")
 
-	fs.StringVar(&date, "date", "", dateUsage)
-	fs.StringVar(&date, "d", "", dateUsage)
+	fs.StringVar(&date, "date", "", "")
+	fs.StringVar(&date, "d", "", "")
 
-	fs.Float64Var(&amount, "amount", 0, amountUsage)
-	fs.Float64Var(&amount, "a", 0, amountUsage)
+	fs.Float64Var(&amount, "amount", 0, "")
+	fs.Float64Var(&amount, "a", 0, "")
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Errorf("parse: ", err)
@@ -166,8 +161,12 @@ func ListExp(db *sql.DB, args []string) (error) {
 	// filterUsage := "tag(s) to filter by"
 
 	fs := flag.NewFlagSet("list", flag.ExitOnError)
-	// fs.StringVar(&filter, "filter", NULL, filterUsage)
-	// fs.StringVar(&filter, "f", NULL, filterUsage)
+	fs.Usage = func() {
+		fmt.Println("list usage:")
+		//fmt.Printf("-f, --filter\n\t%s\n", filterUsage)
+	}
+	// fs.StringVar(&filter, "filter", NULL, "")
+	// fs.StringVar(&filter, "f", NULL, "")
 
 	if err := fs.Parse(args); err != nil {
 		return err
@@ -187,7 +186,7 @@ func ListExp(db *sql.DB, args []string) (error) {
 		if scanErr != nil {
 			return scanErr
 		}
-		fmt.Printf("%d\t%s:\t\t$%.2f\t\t%s\n", exp.ID, exp.Name, exp.Amount, exp.Date)
+		fmt.Printf("%d  %s\t\t$%.2f\t\t%s\n", exp.ID, exp.Name, exp.Amount, exp.Date)
 	}
 
 	return nil
@@ -196,11 +195,17 @@ func ListExp(db *sql.DB, args []string) (error) {
 func SumExp(db *sql.DB, args []string) (error) {
 	var total float64 = 0
 	// var filter string
+
 	// filterUsage := "tag(s) to filter by"
 
 	fs := flag.NewFlagSet("summary", flag.ExitOnError)
-	// fs.StringVar(&filter, "filter", NULL, filterUsage)
-	// fs.StringVar(&filter, "f", NULL, filterUsage)
+	fs.Usage = func() {
+		fmt.Println("summary usage:")
+		//fmt.Printf("-f, --filter\n\t%s\n", filterUsage)
+	}
+
+	// fs.StringVar(&filter, "filter", NULL, "")
+	// fs.StringVar(&filter, "f", NULL, "")
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Errorf("parse: ", err)
@@ -238,14 +243,24 @@ func UpdateExp(db *sql.DB, args []string) (error) {
 	dateUsage		:= "the date of the transaction"
 
 	fs := flag.NewFlagSet("update", flag.ExitOnError)
+	fs.Usage = func() {
+		fmt.Println("update usage:")
+		fmt.Printf("--id\n\t%s\n", idUsage)
+		fmt.Printf("-n, --name\n\t%s\n", nameUsage)
+		fmt.Printf("-d, --date\n\t%s\n", dateUsage)
+		fmt.Printf("-a, --amount\n\t%s\n", amountUsage)
+	}
+
 	fs.IntVar(&id, "id", 0, idUsage)
 
-	fs.StringVar(&name, "name", "", nameUsage)
-	fs.StringVar(&name, "d", "", nameUsage)
-	fs.StringVar(&date, "date", "", dateUsage)
+	fs.StringVar(&name, "name", "", "")
+	fs.StringVar(&name, "n", "", "")
 
-	fs.Float64Var(&amount, "amount", 0, amountUsage)
-	fs.Float64Var(&amount, "a", 0, amountUsage)
+	fs.StringVar(&date, "d", "", "")
+	fs.StringVar(&date, "date", "", "")
+
+	fs.Float64Var(&amount, "amount", 0, "")
+	fs.Float64Var(&amount, "a", 0, "")
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Errorf("parse: ", err)
@@ -287,8 +302,20 @@ func DeleteExp(db *sql.DB, args []string) (error) {
 	//dateUsage			:= "the date of the transaction"
 
 	fs := flag.NewFlagSet("delete", flag.ExitOnError)
-	fs.IntVar(&id, "id", 0, idUsage)
-	//fs.StringVar(&date, "date", "", dateUsage)
+	fs.Usage = func() {
+		fmt.Println("delete usage:")
+		fmt.Printf("--id\n\t%s\n", idUsage)
+		//fmt.Printf("-a, --amount\n\t%s\n", amountUsage)
+		//fmt.Printf("-d, --date\n\t%s\n", dateUsage)
+	}
+
+	fs.IntVar(&id, "id", 0, "")
+
+	//fs.float64Var(&amount, "amount", "", "")
+	//fs.float64Var(&amount, "a", "", "")
+
+	//fs.StringVar(&date, "date", "", "")
+	//fs.StringVar(&date, "d", "", "")
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Errorf("parse: ", err)
@@ -296,12 +323,11 @@ func DeleteExp(db *sql.DB, args []string) (error) {
 	}
 
 	if id <= 0 {
-		fmt.Println("id out of bounds.")
+		fmt.Println("invalid id.")
 		return nil
 	}
 
-	op := "DELETE FROM expenses WHERE id=?"
-	_, exeErr := db.Exec(op, id)
+	_, exeErr := db.Exec("DELETE FROM expenses WHERE id=?", id)
 	if exeErr != nil {
 		return exeErr
 	}

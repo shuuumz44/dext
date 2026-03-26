@@ -51,24 +51,24 @@
             Filter the displayed expenses by their category.
 
 # TODO
-    * abstract away argument parsing (DRY)
-    * properly format list output
     * auto update/order ids
     * add writing to CSV
     * add filtering 
 
 # ERRORS
-    * error message does not combine the usage message of long and shorthand flag names
 
 # IDEAS
+    * separate date and time
+    * elaborate date parsing
+    * option to format output
     * keep table info in a struct to efficiently read stuff like amount of rows
     * multiple tables/databases
     * manage user credentials/authentication 
-    * option to format output
-    * elaborate date parsing
+    * abstract away argument parsing (DRY)
 
 # NOTES
     * mysql authentication can be a little finnicky at first. Make sure you can login at the command prompt, check the creds with status, then copy them to the program / as an env variable.
     * argument parsing is basically one and the same for building out the specific function. It doesn't have to be, it can and should probably be abstracted, but it's okay for now
     * go's sql package recognizes mysql DATETIMEs as time.Time types. When calling row(s).Scan, this can be stored into pointers to time.Time, interface{}, string, or []byte. Warning though, time.Time types (and sql.NullTime by extension) have to be used with the sql.Scanner interface. Despite all this, it is easiest to store DATETIMEs as strings.
     * sql accepts DATETIME values as strings or integers. Strings are accepted as 'YYYY-MM-DD hh:mm:ss (with an optional fraction part). Time is in military time. If the time is omitted, it is set to 0:00:00.
+    * when os.GetEnv() fails, be sure that your variable is exported (in the same shell that you build the program, if using a multiplexer).
