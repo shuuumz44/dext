@@ -6,10 +6,6 @@
 
 # DESCRIPTION
     **dext** manipulates (CRUD) a database of expenses.
-    **dext** allows setting a monthly budget, and will optionally warn you if
-    that budget is exceeded after an expense. This warning is automatically on,
-    but can be toggled off.
-    It also allows exporting a file into a CSV.
 
 # DEPENDENCIES
     * mysql
@@ -51,9 +47,8 @@
             Filter the displayed expenses by their category.
 
 # TODO
-    * auto update/order ids
-    * add writing to CSV
     * add filtering 
+    * auto update/order ids
 
 # ERRORS
 
@@ -61,10 +56,13 @@
     * separate date and time
     * elaborate date parsing
     * option to format output
-    * keep table info in a struct to efficiently read stuff like amount of rows
+    * delete by amount/date/name
     * multiple tables/databases
     * manage user credentials/authentication 
-    * abstract away argument parsing (DRY)
+    * abstract database execution
+    * abstract argument parsing
+    * streamline setup
+    * choose export file type
 
 # NOTES
     * mysql authentication can be a little finnicky at first. Make sure you can login at the command prompt, check the creds with status, then copy them to the program / as an env variable.

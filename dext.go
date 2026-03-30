@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -12,7 +13,7 @@ import (
 )
 
 type Expense struct {
-	ID 		int64
+	ID 		int
 	Date	string
 	Name	string
 	Amount	float64
@@ -46,6 +47,10 @@ OPTIONS:
 
 
 func main() {
+	if len(os.Args) <= 1 {
+		return
+	}
+
 	args := os.Args[2:]
 	//amnt := len(args)
 	
@@ -76,6 +81,9 @@ func main() {
 
 	case "delete":
 		opErr = DeleteExp(db, args)
+		
+	case "export":
+		opErr = Export(db, args)
 
 	default:
 		fmt.Println(help)
@@ -333,5 +341,85 @@ func DeleteExp(db *sql.DB, args []string) (error) {
 	}
 
 	//fmt.Println("deleted: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
+	return nil
+}
+
+func Export(db *sql.DB, args []string) (error) {
+	var filename string
+	// var filter string
+
+	filenameUsage	:= "name of .csv file"
+	// filterUsage	:= "tag(s) to filter by"
+
+	fs := flag.NewFlagSet("export", flag.ExitOnError)
+	fs.Usage = func() {
+		fmt.Println("export usage:")
+		fmt.Printf("-n, --filename\n\t%s\n", filenameUsage)
+		//fmt.Printf("-f, --filter\n\t%s\n", filterUsage)
+	}
+
+	fs.StringVar(&filename, "filename", "", "")
+	fs.StringVar(&filename, "n", "", "")
+
+	// fs.StringVar(&filter, "filter", NULL, "")
+	// fs.StringVar(&filter, "f", NULL, "")
+
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	if filename == "" {
+		fmt.Println("filename cannot be null.")
+		return nil
+	}
+
+	// create connection to new .csv file
+	fn := fmt.Sprintf("%s.csv", filename)
+	f, createErr := os.Create(fn)
+	if createErr != nil {
+		return createErr
+	}
+	w := csv.NewWriter(f)
+
+	rows, exeErr := db.Query("SELECT * FROM expenses")
+	if exeErr != nil {
+		return exeErr
+	}
+	defer rows.Close()
+
+	out := make([]string, 4)
+	cols, colErr := rows.Columns()
+	if colErr != nil {
+		return colErr
+	}
+
+	out[0] = cols[0]
+	out[1] = cols[1]
+	out[2] = cols[2]
+	out[3] = cols[3]
+	w.Write(out)
+
+	for rows.Next() {
+		var exp Expense
+
+		scanErr := rows.Scan(&exp.ID, &exp.Date, &exp.Name, &exp.Amount) 
+		if scanErr != nil {
+			return scanErr
+		}
+
+		// output into CSV
+		out[0] = strconv.Itoa(exp.ID)
+		out[1] = exp.Name
+		out[2] = fmt.Sprintf("%f", exp.Amount)
+		out[3] = exp.Date
+		w.Write(out)
+	}
+
+	w.Flush()
+
+	if wErr := w.Error(); wErr != nil {
+		return wErr
+	}
+
 	return nil
 }
