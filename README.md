@@ -47,22 +47,28 @@
             Filter the displayed expenses by their category.
 
 # TODO
-    * add filtering 
-    * auto update/order ids
+    * abstract:
+        - Delete 
+            ^ sanitize id input
+            ^ select by amount/date/name
+        - date parsing (different formats, etc. with slashes: YYYY/MM/DD)
+        - Querying
+            ^ choose column to order rows by, and increasing/decreasing
+            ^ filter by month/year
+            ^ filter by ranges (dates or amount)
+    * make database name an environment variable
+    * add categories (tags)
+    * add Created column (DATETIME)
+    * add export to JSON
 
 # ERRORS
 
 # IDEAS
-    * separate date and time
-    * elaborate date parsing
+    * (abstract) generic flag parsing, using empty interface (?)
     * option to format output
-    * delete by amount/date/name
-    * multiple tables/databases
     * manage user credentials/authentication 
-    * abstract database execution
-    * abstract argument parsing
     * streamline setup
-    * choose export file type
+    * multiple tables/databases
 
 # NOTES
     * mysql authentication can be a little finnicky at first. Make sure you can login at the command prompt, check the creds with status, then copy them to the program / as an env variable.
@@ -70,3 +76,6 @@
     * go's sql package recognizes mysql DATETIMEs as time.Time types. When calling row(s).Scan, this can be stored into pointers to time.Time, interface{}, string, or []byte. Warning though, time.Time types (and sql.NullTime by extension) have to be used with the sql.Scanner interface. Despite all this, it is easiest to store DATETIMEs as strings.
     * sql accepts DATETIME values as strings or integers. Strings are accepted as 'YYYY-MM-DD hh:mm:ss (with an optional fraction part). Time is in military time. If the time is omitted, it is set to 0:00:00.
     * when os.GetEnv() fails, be sure that your variable is exported (in the same shell that you build the program, if using a multiplexer).
+    * Rows can be selected by the row number with the ROW_NUMBER clause. You only have to specify 
+    the order of the table in the same statement. Unfortunately this is useless as the program exits
+    after every execution.

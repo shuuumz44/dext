@@ -52,14 +52,12 @@ func main() {
 	}
 
 	args := os.Args[2:]
-	//amnt := len(args)
 	
 	db, confErr := GetConfig()
 	if confErr != nil {
 		log.Fatal("database connection error: ", confErr)
 	}
 
-	// ping in main to avoid annoying unused var warning
 	pingErr := db.Ping()
 	if pingErr != nil {
 		log.Fatal("database ping error: ", pingErr)
@@ -144,7 +142,7 @@ func AddExp(db *sql.DB, args []string) (error) {
 		return err
 	}
 
-	if name=="" && amount==0 {
+	if name == "" && amount == 0 {
 		fmt.Println("No value specified.")
 		return nil
 	}
@@ -187,10 +185,17 @@ func ListExp(db *sql.DB, args []string) (error) {
 	}
 	defer rows.Close()
 
+	// print column names
+	col, colErr := rows.Columns()
+	if colErr != nil {
+		return colErr
+	}
+	fmt.Printf("%s %s\t\t%s\t\t%s\n", col[0], col[1], col[2], col[3])
+
 	for rows.Next() {
 		var exp Expense
 
-		scanErr := rows.Scan(&exp.ID, &exp.Date, &exp.Name, &exp.Amount) 
+		scanErr := rows.Scan(&exp.ID, &exp.Name, &exp.Amount, &exp.Date) 
 		if scanErr != nil {
 			return scanErr
 		}
@@ -301,46 +306,48 @@ func UpdateExp(db *sql.DB, args []string) (error) {
 } 
 
 func DeleteExp(db *sql.DB, args []string) (error) {
-	var id 		int
-	//var amount 	float64
-	//var date	string
+	var id 		string
+	// var amount 	float64
+	// var date	string
 
-	idUsage 			:= "the ID of the expense"
-	//amountUsage 		:= "the cost of the expense"
-	//dateUsage			:= "the date of the transaction"
+	idUsage 			:= "the ID of the expense(s)"
+	// amountUsage 		:= "the cost of the expense"
+	// dateUsage		:= "the date of the transaction"
 
 	fs := flag.NewFlagSet("delete", flag.ExitOnError)
 	fs.Usage = func() {
 		fmt.Println("delete usage:")
 		fmt.Printf("--id\n\t%s\n", idUsage)
-		//fmt.Printf("-a, --amount\n\t%s\n", amountUsage)
-		//fmt.Printf("-d, --date\n\t%s\n", dateUsage)
+		// fmt.Printf("-a, --amount\n\t%s\n", amountUsage)
+		// fmt.Printf("-d, --date\n\t%s\n", dateUsage)
 	}
 
-	fs.IntVar(&id, "id", 0, "")
+	fs.StringVar(&id, "id", "", idUsage)
 
-	//fs.float64Var(&amount, "amount", "", "")
-	//fs.float64Var(&amount, "a", "", "")
+	// fs.float64Var(&amount, "amount", "", "")
+	// fs.float64Var(&amount, "a", "", "")
 
-	//fs.StringVar(&date, "date", "", "")
-	//fs.StringVar(&date, "d", "", "")
+	// fs.StringVar(&date, "date", "", "")
+	// fs.StringVar(&date, "d", "", "")
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Errorf("parse: ", err)
 		return err
 	}
 
-	if id <= 0 {
-		fmt.Println("invalid id.")
+	if id == "" {
+		fmt.Println("no id specified.")
 		return nil
 	}
 
-	_, exeErr := db.Exec("DELETE FROM expenses WHERE id=?", id)
+	execution := fmt.Sprintf("DELETE FROM expenses WHERE id IN (%s)", id)
+	// Sanitize(execution)
+	_, exeErr := db.Exec(execution)
 	if exeErr != nil {
 		return exeErr
 	}
 
-	//fmt.Println("deleted: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
+	// fmt.Println("deleted: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
 	return nil
 }
 
@@ -355,7 +362,7 @@ func Export(db *sql.DB, args []string) (error) {
 	fs.Usage = func() {
 		fmt.Println("export usage:")
 		fmt.Printf("-n, --filename\n\t%s\n", filenameUsage)
-		//fmt.Printf("-f, --filter\n\t%s\n", filterUsage)
+		// fmt.Printf("-f, --filter\n\t%s\n", filterUsage)
 	}
 
 	fs.StringVar(&filename, "filename", "", "")
