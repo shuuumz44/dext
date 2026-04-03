@@ -14,9 +14,9 @@ import (
 
 type Expense struct {
 	ID 		int
-	Date	string
-	Name	string
 	Amount	float64
+	Name	string
+	Date	string
 }
 
 var help string =
@@ -90,7 +90,6 @@ func main() {
 
 	if opErr != nil {
 		log.Fatal(opErr)
-		return
 	}
 
 }
@@ -233,7 +232,8 @@ func SumExp(db *sql.DB, args []string) (error) {
 
 	for rows.Next() {
 		var exp Expense
-		scanErr := rows.Scan(&exp.ID, &exp.Date, &exp.Name, &exp.Amount) 
+
+		scanErr := rows.Scan(&exp.ID, &exp.Name, &exp.Amount, &exp.Date) 
 		if scanErr != nil {
 			return scanErr
 		}

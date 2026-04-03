@@ -47,6 +47,7 @@
             Filter the displayed expenses by their category.
 
 # TODO
+    ** BUILD TESTS **
     * abstract:
         - Delete 
             ^ sanitize id input
@@ -54,8 +55,8 @@
         - date parsing (different formats, etc. with slashes: YYYY/MM/DD)
         - Querying
             ^ choose column to order rows by, and increasing/decreasing
-            ^ filter by month/year
-            ^ filter by ranges (dates or amount)
+            ^ choose by month/year
+            ^ choose by ranges (dates or amount)
     * make database name an environment variable
     * add categories (tags)
     * add Created column (DATETIME)
@@ -64,7 +65,8 @@
 # ERRORS
 
 # IDEAS
-    * (abstract) generic flag parsing, using empty interface (?)
+    * abstract generic flag parsing, using empty interface (?)
+    * abstract query parsing. Dynamically sprintf() values into string and sanitize
     * option to format output
     * manage user credentials/authentication 
     * streamline setup
@@ -79,3 +81,6 @@
     * Rows can be selected by the row number with the ROW_NUMBER clause. You only have to specify 
     the order of the table in the same statement. Unfortunately this is useless as the program exits
     after every execution.
+    * if you have multiple .go files and/or your main file isn't named 'main.go', go build might
+    tell you it found packages and not actually create the output file. This began after I added
+    'dext_test.go". If this happens, just replace . with your program name (output file).
