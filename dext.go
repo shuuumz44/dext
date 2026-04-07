@@ -58,15 +58,26 @@ func main() {
 		log.Fatal("database connection error: ", confErr)
 	}
 
-	pingErr := db.Ping()
-	if pingErr != nil {
-		log.Fatal("database ping error: ", pingErr)
-	}
-
 	var opErr error
+	// var res *sql.Result
+
 	switch os.Args[1] {
 	case "add":
-		opErr = AddExp(db, args)
+		_, opErr = AddExp(db, args)
+
+		/*
+		lastID, IDerr := (*res).LastInsertId()
+		affected, affErr := (*res).RowsAffected()
+		if (IDerr != nil) {
+			log.Fatal(IDerr)
+		}
+		if (affErr != nil) {
+			log.Fatal(affErr)
+		}
+
+		fmt.Printf("last added ID: %d\n", lastID)
+		fmt.Printf("altered rows: %d\n", affected)
+		*/
 
 	case "list":
 		opErr = ListExp(db, args)
@@ -75,10 +86,10 @@ func main() {
 		opErr = SumExp(db, args)
 
 	case "update":
-		opErr = UpdateExp(db, args)
+		_, opErr = UpdateExp(db, args)
 
 	case "delete":
-		opErr = DeleteExp(db, args)
+		_, opErr = DeleteExp(db, args)
 		
 	case "export":
 		opErr = Export(db, args)
@@ -107,10 +118,15 @@ func GetConfig() (*sql.DB, error) {
 		return nil, err
 	}
 
+	pingErr := db.Ping()
+	if pingErr != nil {
+		return nil, pingErr
+	}
+
 	return db, nil
 }
 
-func AddExp(db *sql.DB, args []string) (error) {
+func AddExp(db *sql.DB, args []string) (*sql.Result, error) {
 	var name	string
 	var amount 	float64
 	var date	string
@@ -138,27 +154,28 @@ func AddExp(db *sql.DB, args []string) (error) {
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Errorf("parse: ", err)
-		return err
+		return nil, err
 	}
 
 	if name == "" && amount == 0 {
 		fmt.Println("No value specified.")
-		return nil
+		return nil, nil
 	}
 
 	var exeErr error
+	var res sql.Result
 	if date == "" {
-		_, exeErr = db.Exec("INSERT INTO expenses (name, amount) VALUES (?, ?)", name, amount)
+		res, exeErr = db.Exec("INSERT INTO expenses (name, amount) VALUES (?, ?)", name, amount)
 	} else { 
-		_, exeErr = db.Exec("INSERT INTO expenses (name, amount, purchased) VALUES (?, ?, ?)", name, amount, date)
+		res, exeErr = db.Exec("INSERT INTO expenses (name, amount, purchased) VALUES (?, ?, ?)", name, amount, date)
 	}
 
 	if exeErr != nil {
-		return exeErr
+		return nil, exeErr
 	}
 
 	fmt.Println("added: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
-	return nil
+	return &res, nil
 }
 
 func ListExp(db *sql.DB, args []string) (error) {
@@ -244,7 +261,7 @@ func SumExp(db *sql.DB, args []string) (error) {
 	return nil
 }
 
-func UpdateExp(db *sql.DB, args []string) (error) {
+func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 	var id 		int
 	var amount 	float64
 	var name	string
@@ -277,35 +294,36 @@ func UpdateExp(db *sql.DB, args []string) (error) {
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Errorf("parse: ", err)
-		return err
+		return nil, err
 	}
 
 	updateName := (name != "")
 	updateAmount := (amount != 0) 
 	if id <= 0 || (!updateName && !updateAmount) {
 		fmt.Println("No changes specified.")
-		return nil
+		return nil, nil
 	}
 
 	var exeErr error
+	var res sql.Result
 	switch {
 	case updateName && updateAmount:
-		_, exeErr = db.Exec("UPDATE expenses SET name=?, amount=? WHERE id=?", name, amount, id)
+		res, exeErr = db.Exec("UPDATE expenses SET name=?, amount=? WHERE id=?", name, amount, id)
 	case updateName:
-		_, exeErr = db.Exec("UPDATE expenses SET name=? WHERE id=?", name, id)
+		res, exeErr = db.Exec("UPDATE expenses SET name=? WHERE id=?", name, id)
 	case updateAmount:
-		_, exeErr = db.Exec("UPDATE expenses SET amount=? WHERE id=?", amount, id)
+		res, exeErr = db.Exec("UPDATE expenses SET amount=? WHERE id=?", amount, id)
 	}
 
 	if exeErr != nil {
-		return exeErr
+		return nil, exeErr
 	}
 
 	fmt.Println("updated: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
-	return nil
+	return &res, nil
 } 
 
-func DeleteExp(db *sql.DB, args []string) (error) {
+func DeleteExp(db *sql.DB, args []string) (*sql.Result, error) {
 	var id 		string
 	// var amount 	float64
 	// var date	string
@@ -332,23 +350,23 @@ func DeleteExp(db *sql.DB, args []string) (error) {
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Errorf("parse: ", err)
-		return err
+		return nil, err
 	}
 
 	if id == "" {
 		fmt.Println("no id specified.")
-		return nil
+		return nil, nil
 	}
 
 	execution := fmt.Sprintf("DELETE FROM expenses WHERE id IN (%s)", id)
 	// Sanitize(execution)
-	_, exeErr := db.Exec(execution)
+	res, exeErr := db.Exec(execution)
 	if exeErr != nil {
-		return exeErr
+		return nil, exeErr
 	}
 
 	// fmt.Println("deleted: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
-	return nil
+	return &res, nil
 }
 
 func Export(db *sql.DB, args []string) (error) {
