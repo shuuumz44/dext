@@ -50,7 +50,6 @@
     ** BUILD TESTS **
     * abstract:
         - Delete 
-            ^ sanitize id input
             ^ select by amount/date/name
         - date parsing (different formats, etc. with slashes: YYYY/MM/DD)
         - Querying

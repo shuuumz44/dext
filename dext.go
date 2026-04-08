@@ -2,12 +2,14 @@ package main
 
 import (
 	"encoding/csv"
+	"errors"
 	"database/sql"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
+	"unicode"
 
 	"github.com/go-sql-driver/mysql"
 )
@@ -126,6 +128,16 @@ func GetConfig() (*sql.DB, error) {
 	return db, nil
 }
 
+func Sanitize(ids string) (error) {
+	for _, a := range ids {
+		if a != ',' && !unicode.IsNumber(a) && !unicode.IsSpace(a) {
+			return errors.New("unsafe string")
+		}
+	}
+
+	return nil
+}
+
 func AddExp(db *sql.DB, args []string) (*sql.Result, error) {
 	var name	string
 	var amount 	float64
@@ -153,7 +165,7 @@ func AddExp(db *sql.DB, args []string) (*sql.Result, error) {
 	fs.Float64Var(&amount, "a", 0, "")
 
 	if err := fs.Parse(args); err != nil {
-		fmt.Errorf("parse: ", err)
+		fmt.Errorf("parse: %w", err)
 		return nil, err
 	}
 
@@ -237,7 +249,7 @@ func SumExp(db *sql.DB, args []string) (error) {
 	// fs.StringVar(&filter, "f", NULL, "")
 
 	if err := fs.Parse(args); err != nil {
-		fmt.Errorf("parse: ", err)
+		fmt.Errorf("parse: %w", err)
 		return err
 	}
 
@@ -293,7 +305,7 @@ func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 	fs.Float64Var(&amount, "a", 0, "")
 
 	if err := fs.Parse(args); err != nil {
-		fmt.Errorf("parse: ", err)
+		fmt.Errorf("parse: %w", err)
 		return nil, err
 	}
 
@@ -349,7 +361,7 @@ func DeleteExp(db *sql.DB, args []string) (*sql.Result, error) {
 	// fs.StringVar(&date, "d", "", "")
 
 	if err := fs.Parse(args); err != nil {
-		fmt.Errorf("parse: ", err)
+		fmt.Errorf("parse: %w", err)
 		return nil, err
 	}
 
@@ -358,8 +370,12 @@ func DeleteExp(db *sql.DB, args []string) (*sql.Result, error) {
 		return nil, nil
 	}
 
+	sanErr := Sanitize(id)
+	if sanErr != nil {
+		return nil, sanErr
+	}
+	
 	execution := fmt.Sprintf("DELETE FROM expenses WHERE id IN (%s)", id)
-	// Sanitize(execution)
 	res, exeErr := db.Exec(execution)
 	if exeErr != nil {
 		return nil, exeErr
