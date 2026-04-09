@@ -47,7 +47,6 @@
             Filter the displayed expenses by their category.
 
 # TODO
-    ** BUILD TESTS **
     * abstract:
         - Delete 
             ^ select by amount/date/name
@@ -56,7 +55,7 @@
             ^ choose column to order rows by, and increasing/decreasing
             ^ choose by month/year
             ^ choose by ranges (dates or amount)
-    * make database name an environment variable
+    * space output rows cleanly
     * add categories (tags)
     * add Created column (DATETIME)
     * add export to JSON
@@ -64,9 +63,10 @@
 # ERRORS
 
 # IDEAS
+    * make secondary database for testing
     * abstract generic flag parsing, using empty interface (?)
-    * abstract query parsing. Dynamically sprintf() values into string and sanitize
-    * option to format output
+    * abstract query parsing. (sprintf() + sanitization)
+    * output formatting options
     * manage user credentials/authentication 
     * streamline setup
     * multiple tables/databases

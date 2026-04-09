@@ -67,20 +67,6 @@ func main() {
 	case "add":
 		_, opErr = AddExp(db, args)
 
-		/*
-		lastID, IDerr := (*res).LastInsertId()
-		affected, affErr := (*res).RowsAffected()
-		if (IDerr != nil) {
-			log.Fatal(IDerr)
-		}
-		if (affErr != nil) {
-			log.Fatal(affErr)
-		}
-
-		fmt.Printf("last added ID: %d\n", lastID)
-		fmt.Printf("altered rows: %d\n", affected)
-		*/
-
 	case "list":
 		opErr = ListExp(db, args)
 
@@ -113,7 +99,7 @@ func GetConfig() (*sql.DB, error) {
 	cfg.Passwd = os.Getenv("DBPASS") 
 	cfg.Net = "tcp"
 	cfg.Addr = "127.0.0.1:3306"
-	cfg.DBName = "account"
+	cfg.DBName =os.Getenv("DBNAME") 
 
 	db, err := sql.Open("mysql", cfg.FormatDSN())
 	if err != nil {
