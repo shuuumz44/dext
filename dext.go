@@ -99,7 +99,7 @@ func GetConfig() (*sql.DB, error) {
 	cfg.Passwd = os.Getenv("DBPASS") 
 	cfg.Net = "tcp"
 	cfg.Addr = "127.0.0.1:3306"
-	cfg.DBName =os.Getenv("DBNAME") 
+	cfg.DBName = os.Getenv("DBNAME") 
 
 	db, err := sql.Open("mysql", cfg.FormatDSN())
 	if err != nil {
@@ -114,14 +114,81 @@ func GetConfig() (*sql.DB, error) {
 	return db, nil
 }
 
-func Sanitize(ids string) (error) {
-	for _, a := range ids {
-		if a != ',' && !unicode.IsNumber(a) && !unicode.IsSpace(a) {
-			return errors.New("unsafe string")
+func Sanitize(str string, usage string) (error) {
+	switch usage {
+	case "id":
+		for _, a := range str {
+			if a != ',' && !unicode.IsNumber(a) && !unicode.IsSpace(a) {
+				return errors.New("unsafe id")
+			}
 		}
+
+	case "month":
+		invalid := errors.New("invalid month")
+
+		if len(str) >= 10 {
+			return invalid
+		}
+
+		// *** check that this iterates correctly ***
+		for i, a := range str[1:] {
+			if unicode.IsNumber(a) && !unicode.IsNumber(str[i-1]) {
+				return invalid
+			}
+			else if unicode.IsLetter(a) && !unicode.IsLetter(str[i-1]) {
+				return invalid
+			}
+		}
+
+	default:
+		return errors.New("usage unrecognized")
 	}
 
 	return nil
+}
+
+func GetMonth(m int) (int, error) {
+		type month int
+		const (
+			January 	month = iota
+			February
+			March
+			April
+			May
+			June
+			July
+			August
+			September
+			October
+			November
+			December
+		)
+
+		var monthName = map[month] string {
+			January:	"jan",
+			February:	"feb",
+			March:		"mar",
+			April:		"apr",
+			May:		"may",
+			June:		"jun",
+			July:		"jul",
+			August:		"aug",
+			September:	"sep",
+			October:	"oct",
+			November:	"nov",
+			December:	"dec",
+		}
+
+		if unicode.IsNumber(str[0]) {
+			num := strconv.Atoi(str)
+			if num < 1 || num > 12 {
+				return 0, errors.New("invalid month")
+			}
+			return num, nil
+		}
+
+		num = unicode.ToLower(num)[2:]
+		// return month with monthName or fail
 }
 
 func AddExp(db *sql.DB, args []string) (*sql.Result, error) {
@@ -177,23 +244,41 @@ func AddExp(db *sql.DB, args []string) (*sql.Result, error) {
 }
 
 func ListExp(db *sql.DB, args []string) (error) {
-	// var filter string
-	// filterUsage := "tag(s) to filter by"
+	var month string
+	monthUsage := "tag(s) to filter by"
 
 	fs := flag.NewFlagSet("list", flag.ExitOnError)
 	fs.Usage = func() {
 		fmt.Println("list usage:")
-		//fmt.Printf("-f, --filter\n\t%s\n", filterUsage)
+		fmt.Printf("-m, --month\n\t%s\n", monthUsage)
 	}
-	// fs.StringVar(&filter, "filter", NULL, "")
-	// fs.StringVar(&filter, "f", NULL, "")
+
+	fs.StringVar(&month, "month", NULL, "")
+	fs.StringVar(&month, "m", NULL, "")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
-	// eventually alter query to filter for tags.
-	rows, exeErr := db.Query("SELECT * FROM expenses")
+	q := "SELECT * FROM expenses"
+	if month != "" {
+		unsafeMonth := Sanitize(month, "month")
+		if unsafeMonth != nil {
+			return unsafeMonth
+		}
+		m, monthErr := getMonth(month)
+		if monthErr != nil {
+			return monthErr
+		}
+
+		var year string
+		row, _ := db.QueryRow("SELECT purchased FROM expenses ORDER BY purchased DESC LIMIT 1")
+		row.Scanf(&year)
+		y := year[3:]
+
+		q = fmt.Sprintf(`%s WHERE purchased LIKE '____-%s-__'`, q, m)
+	}
+	rows, exeErr := db.Query(q)
 	if exeErr != nil {
 		return exeErr
 	}
@@ -221,18 +306,18 @@ func ListExp(db *sql.DB, args []string) (error) {
 
 func SumExp(db *sql.DB, args []string) (error) {
 	var total float64 = 0
-	// var filter string
+	var month string
 
-	// filterUsage := "tag(s) to filter by"
+	monthUsage := "tag(s) to filter by"
 
 	fs := flag.NewFlagSet("summary", flag.ExitOnError)
 	fs.Usage = func() {
 		fmt.Println("summary usage:")
-		//fmt.Printf("-f, --filter\n\t%s\n", filterUsage)
+		fmt.Printf("-m, --month\n\t%s\n", monthUsage)
 	}
 
-	// fs.StringVar(&filter, "filter", NULL, "")
-	// fs.StringVar(&filter, "f", NULL, "")
+	fs.StringVar(&month, "month", NULL, "")
+	fs.StringVar(&month, "m", NULL, "")
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Errorf("parse: %w", err)
@@ -252,7 +337,13 @@ func SumExp(db *sql.DB, args []string) (error) {
 		if scanErr != nil {
 			return scanErr
 		}
-		total += exp.Amount
+
+		if month != "" {
+			// check month is in year
+		}
+		else {
+			total += exp.Amount
+		}
 	}
 	fmt.Println("Total: ", total)
 
@@ -356,7 +447,7 @@ func DeleteExp(db *sql.DB, args []string) (*sql.Result, error) {
 		return nil, nil
 	}
 
-	sanErr := Sanitize(id)
+	sanErr := Sanitize(id, "id")
 	if sanErr != nil {
 		return nil, sanErr
 	}
@@ -367,6 +458,7 @@ func DeleteExp(db *sql.DB, args []string) (*sql.Result, error) {
 		return nil, exeErr
 	}
 
+	// update delete message
 	// fmt.Println("deleted: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
 	return &res, nil
 }

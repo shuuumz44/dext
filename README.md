@@ -14,21 +14,18 @@
     * git clone/etc.
     * run go get github.com/go-sql-driver/mysql
     * using the mysql CLI:
-        * CREATE DATABASE [database_name]
-        * USE [database_name]
+        * CREATE DATABASE [database name]
+        * USE [database name]
         * source ./init.sql
     * mysql has now created a table named "expenses", inside of the database you created. 
     The user is "root".
     The password is read from an environment variable, DBPASS.
+    The database name is read from DBNAME.
     * To export a value into an environment variable:
         - Linux/Mac: export VARIABLE=value
         - Windows:   set VARIABLE=value
 
 # OPTIONS
-    **File Input/Output**
-        **-o open**
-            opens a table for operating on.
-
     **CRUD Operations**
         **-a add**
             add an expense into the database.
@@ -47,28 +44,34 @@
             Filter the displayed expenses by their category.
 
 # TODO
+    * sanitize month
+    * parse month
     * abstract:
         - Delete 
             ^ select by amount/date/name
         - date parsing (different formats, etc. with slashes: YYYY/MM/DD)
         - Querying
-            ^ choose column to order rows by, and increasing/decreasing
             ^ choose by month/year
             ^ choose by ranges (dates or amount)
+            ^ choose column to order rows by, and increasing/decreasing
+            ^ abstract case switching to a helper function
     * space output rows cleanly
     * add categories (tags)
     * add Created column (DATETIME)
     * add export to JSON
 
+# TEST
+    * Sanitize(\_, "month") 
+
 # ERRORS
 
 # IDEAS
     * make secondary database for testing
+    * streamline setup
     * abstract generic flag parsing, using empty interface (?)
     * abstract query parsing. (sprintf() + sanitization)
     * output formatting options
     * manage user credentials/authentication 
-    * streamline setup
     * multiple tables/databases
 
 # NOTES
