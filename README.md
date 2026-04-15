@@ -44,8 +44,6 @@
             Filter the displayed expenses by their category.
 
 # TODO
-    * sanitize month
-    * parse month
     * abstract:
         - Delete 
             ^ select by amount/date/name
@@ -62,6 +60,7 @@
 
 # TEST
     * Sanitize(\_, "month") 
+    * GetMonth()
 
 # ERRORS
 

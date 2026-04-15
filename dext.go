@@ -131,11 +131,15 @@ func Sanitize(str string, usage string) (error) {
 		}
 
 		// *** check that this iterates correctly ***
-		for i, a := range str[1:] {
-			if unicode.IsNumber(a) && !unicode.IsNumber(str[i-1]) {
-				return invalid
+		for i, a := range str {
+			r := a
+			if i==0 {
+				continue
 			}
-			else if unicode.IsLetter(a) && !unicode.IsLetter(str[i-1]) {
+
+			if unicode.IsNumber(a) && !unicode.IsNumber(r) {
+				return invalid
+			} else if unicode.IsLetter(a) && !unicode.IsLetter(r) {
 				return invalid
 			}
 		}
@@ -147,48 +151,50 @@ func Sanitize(str string, usage string) (error) {
 	return nil
 }
 
-func GetMonth(m int) (int, error) {
-		type month int
-		const (
-			January 	month = iota
-			February
-			March
-			April
-			May
-			June
-			July
-			August
-			September
-			October
-			November
-			December
-		)
+func GetMonth(m string) (int, error) {
+	invalid := errors.New("invalid month")
 
-		var monthName = map[month] string {
-			January:	"jan",
-			February:	"feb",
-			March:		"mar",
-			April:		"apr",
-			May:		"may",
-			June:		"jun",
-			July:		"jul",
-			August:		"aug",
-			September:	"sep",
-			October:	"oct",
-			November:	"nov",
-			December:	"dec",
+	n, notNumber := strconv.Atoi(m)
+	if notNumber == nil {
+		if n < 1 || n > 12 {
+			return 0, invalid
 		}
+		return n, nil
+	}
 
-		if unicode.IsNumber(str[0]) {
-			num := strconv.Atoi(str)
-			if num < 1 || num > 12 {
-				return 0, errors.New("invalid month")
-			}
-			return num, nil
-		}
+	month := make([]rune, len(m))
+	for i, a := range m {
+		month[i] = unicode.ToLower(a)
+	}
 
-		num = unicode.ToLower(num)[2:]
-		// return month with monthName or fail
+	switch string(month) {
+	case "january", "jan":
+		return 1, nil
+	case "february", "feb":
+		return 2, nil
+	case "march", "mar":
+		return 3, nil
+	case "april", "apr":
+		return 4, nil
+	case "may":
+		return 5, nil
+	case "june", "jun":
+		return 6, nil
+	case "july", "jul":
+		return 7, nil
+	case "august", "aug":
+		return 8, nil
+	case "september", "sep":
+		return 9, nil
+	case "october", "oct":
+		return 10, nil
+	case "november", "nov":
+		return 11, nil
+	case "december", "dec":
+		return 12, nil
+	default:
+		return 0, invalid
+	}
 }
 
 func AddExp(db *sql.DB, args []string) (*sql.Result, error) {
@@ -245,7 +251,7 @@ func AddExp(db *sql.DB, args []string) (*sql.Result, error) {
 
 func ListExp(db *sql.DB, args []string) (error) {
 	var month string
-	monthUsage := "tag(s) to filter by"
+	monthUsage := "month to filter by"
 
 	fs := flag.NewFlagSet("list", flag.ExitOnError)
 	fs.Usage = func() {
@@ -253,31 +259,34 @@ func ListExp(db *sql.DB, args []string) (error) {
 		fmt.Printf("-m, --month\n\t%s\n", monthUsage)
 	}
 
-	fs.StringVar(&month, "month", NULL, "")
-	fs.StringVar(&month, "m", NULL, "")
+	fs.StringVar(&month, "month", "", "")
+	fs.StringVar(&month, "m", "", "")
 
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
 
 	q := "SELECT * FROM expenses"
+
 	if month != "" {
 		unsafeMonth := Sanitize(month, "month")
 		if unsafeMonth != nil {
 			return unsafeMonth
 		}
-		m, monthErr := getMonth(month)
+
+		m, monthErr := GetMonth(month)
 		if monthErr != nil {
 			return monthErr
 		}
 
 		var year string
-		row, _ := db.QueryRow("SELECT purchased FROM expenses ORDER BY purchased DESC LIMIT 1")
-		row.Scanf(&year)
+		row := db.QueryRow("SELECT purchased FROM expenses ORDER BY purchased DESC LIMIT 1")
+		row.Scan(&year)
 		y := year[3:]
 
-		q = fmt.Sprintf(`%s WHERE purchased LIKE '____-%s-__'`, q, m)
+		q = fmt.Sprintf(`%s WHERE purchased LIKE '%s-%s-__'`, q, y, m)
 	}
+
 	rows, exeErr := db.Query(q)
 	if exeErr != nil {
 		return exeErr
@@ -316,8 +325,8 @@ func SumExp(db *sql.DB, args []string) (error) {
 		fmt.Printf("-m, --month\n\t%s\n", monthUsage)
 	}
 
-	fs.StringVar(&month, "month", NULL, "")
-	fs.StringVar(&month, "m", NULL, "")
+	fs.StringVar(&month, "month", "", "")
+	fs.StringVar(&month, "m", "", "")
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Errorf("parse: %w", err)
@@ -340,8 +349,7 @@ func SumExp(db *sql.DB, args []string) (error) {
 
 		if month != "" {
 			// check month is in year
-		}
-		else {
+		} else {
 			total += exp.Amount
 		}
 	}
