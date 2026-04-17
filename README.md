@@ -53,6 +53,7 @@
             ^ choose by ranges (dates or amount)
             ^ choose column to order rows by, and increasing/decreasing
             ^ abstract case switching to a helper function
+            ^ specifying by month chooses the most recent year. make a toggle for this
     * space output rows cleanly
     * add categories (tags)
     * add Created column (DATETIME)

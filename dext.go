@@ -280,11 +280,18 @@ func ListExp(db *sql.DB, args []string) (error) {
 		}
 
 		var year string
+		var monthNumber string
 		row := db.QueryRow("SELECT purchased FROM expenses ORDER BY purchased DESC LIMIT 1")
 		row.Scan(&year)
-		y := year[3:]
+		y := year[:4]
 
-		q = fmt.Sprintf(`%s WHERE purchased LIKE '%s-%s-__'`, q, y, m)
+		if m < 10 {
+			monthNumber = fmt.Sprintf("0%d", m)
+		} else {
+			monthNumber = fmt.Sprintf("%d", m)
+		}
+
+		q = fmt.Sprintf(`%s WHERE purchased LIKE '%s-%s-%%'`, q, y, monthNumber)
 	}
 
 	rows, exeErr := db.Query(q)
@@ -314,10 +321,9 @@ func ListExp(db *sql.DB, args []string) (error) {
 }
 
 func SumExp(db *sql.DB, args []string) (error) {
-	var total float64 = 0
 	var month string
-
-	monthUsage := "tag(s) to filter by"
+	var total float64
+	monthUsage := "month to filter by"
 
 	fs := flag.NewFlagSet("summary", flag.ExitOnError)
 	fs.Usage = func() {
@@ -329,32 +335,44 @@ func SumExp(db *sql.DB, args []string) (error) {
 	fs.StringVar(&month, "m", "", "")
 
 	if err := fs.Parse(args); err != nil {
-		fmt.Errorf("parse: %w", err)
 		return err
 	}
 
-	rows, exeErr := db.Query("SELECT * FROM expenses")
-	if exeErr != nil {
-		return exeErr
-	}
-	defer rows.Close()
+	q := "SELECT SUM(amount) FROM expenses"
 
-	for rows.Next() {
-		var exp Expense
-
-		scanErr := rows.Scan(&exp.ID, &exp.Name, &exp.Amount, &exp.Date) 
-		if scanErr != nil {
-			return scanErr
+	if month != "" {
+		unsafeMonth := Sanitize(month, "month")
+		if unsafeMonth != nil {
+			return unsafeMonth
 		}
 
-		if month != "" {
-			// check month is in year
+		m, monthErr := GetMonth(month)
+		if monthErr != nil {
+			return monthErr
+		}
+
+		var year string
+		var monthNumber string
+		row := db.QueryRow("SELECT purchased FROM expenses ORDER BY purchased DESC LIMIT 1")
+		row.Scan(&year)
+		y := year[:4]
+
+		if m < 10 {
+			monthNumber = fmt.Sprintf("0%d", m)
 		} else {
-			total += exp.Amount
+			monthNumber = fmt.Sprintf("%d", m)
 		}
-	}
-	fmt.Println("Total: ", total)
 
+		q = fmt.Sprintf(`%s WHERE purchased LIKE '%s-%s-%%'`, q, y, monthNumber)
+	}
+
+	row := db.QueryRow(q)
+	scanErr := row.Scan(&total) 
+	if scanErr != nil {
+		return scanErr
+	}
+
+	fmt.Printf("Total: %.2f\n", total)
 	return nil
 }
 
