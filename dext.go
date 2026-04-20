@@ -61,7 +61,6 @@ func main() {
 	}
 
 	var opErr error
-	// var res *sql.Result
 
 	switch os.Args[1] {
 	case "add":
@@ -114,6 +113,7 @@ func GetConfig() (*sql.DB, error) {
 	return db, nil
 }
 
+// determine inputted string is not malicious.
 func Sanitize(str string, usage string) (error) {
 	switch usage {
 	case "id":
@@ -130,10 +130,10 @@ func Sanitize(str string, usage string) (error) {
 			return invalid
 		}
 
-		// *** check that this iterates correctly ***
+		var r rune
 		for i, a := range str {
-			r := a
 			if i==0 {
+				r = a
 				continue
 			}
 
@@ -142,6 +142,7 @@ func Sanitize(str string, usage string) (error) {
 			} else if unicode.IsLetter(a) && !unicode.IsLetter(r) {
 				return invalid
 			}
+			r = a
 		}
 
 	default:
@@ -151,6 +152,7 @@ func Sanitize(str string, usage string) (error) {
 	return nil
 }
 
+// determine inputted string is a valid month.
 func GetMonth(m string) (int, error) {
 	invalid := errors.New("invalid month")
 

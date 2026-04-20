@@ -4,6 +4,7 @@ CREATE TABLE expenses (
 	name			VARCHAR(255),
 	amount			DECIMAL(20,2)		NOT NULL	DEFAULT 0,
 	purchased		DATE 				NOT NULL	DEFAULT (CURRENT_DATE()),
+	created			DATETIME 			NOT NULL	DEFAULT (CURRENT_DATE()),
 	PRIMARY KEY		(`id`)
 );
 

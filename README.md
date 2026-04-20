@@ -44,24 +44,25 @@
             Filter the displayed expenses by their category.
 
 # TODO
-    * abstract:
-        - Delete 
-            ^ select by amount/date/name
-        - date parsing (different formats, etc. with slashes: YYYY/MM/DD)
-        - Querying
-            ^ choose by month/year
-            ^ choose by ranges (dates or amount)
-            ^ choose column to order rows by, and increasing/decreasing
-            ^ abstract case switching to a helper function
-            ^ specifying by month chooses the most recent year. make a toggle for this
-    * space output rows cleanly
+    * add budget
     * add categories (tags)
+    * DeleteExp()
+        ^ select by amount/date/name
+    * Querying
+        ^ choose by year
+        ^ choose by ranges (dates or amount)
+        ^ choose column to order rows by, and increasing/decreasing
+        ^ abstract case switching to a helper function
+        ^ specifying by month chooses the most recent year. make a toggle for this
+        ^ date parsing (different formats, etc. with slashes: YYYY/MM/DD)
+    * Output
+        ^ space output rows cleanly
+        ^ add export to JSON
     * add Created column (DATETIME)
-    * add export to JSON
 
 # TEST
-    * Sanitize(\_, "month") 
     * GetMonth()
+    * Summary()
 
 # ERRORS
 
