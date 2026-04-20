@@ -61,7 +61,6 @@
     * add Created column (DATETIME)
 
 # TEST
-    * GetMonth()
     * Summary()
 
 # ERRORS
