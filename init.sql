@@ -5,6 +5,11 @@ CREATE TABLE expenses (
 	amount			DECIMAL(20,2)		NOT NULL	DEFAULT 0,
 	purchased		DATE 				NOT NULL	DEFAULT (CURRENT_DATE()),
 	created			DATETIME 			NOT NULL	DEFAULT (CURRENT_DATE()),
-	PRIMARY KEY		(`id`)
+	PRIMARY KEY		(id)
 );
 
+DROP TABLE IF EXISTS budget;
+CREATE TABLE budget (
+	id 				INT					DEFAULT 0,
+	threshold		DECIMAL(20,2)
+);

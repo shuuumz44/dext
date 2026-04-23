@@ -19,6 +19,7 @@ type Expense struct {
 	Amount	float64
 	Name	string
 	Date	string
+	Created string
 }
 
 var help string =
@@ -26,9 +27,11 @@ var help string =
 COMMANDS:
 	CRUD
 		add
+		update
 		list
 		summary
 		delete
+
 
 OPTIONS:
 	-n, --name
@@ -45,6 +48,9 @@ OPTIONS:
 	
 	-f, --filter
 		the tag(s) to filter by
+
+	-b, --budget
+		set the amount of the budget
 `
 
 
@@ -92,6 +98,7 @@ func main() {
 
 }
 
+// connect to database
 func GetConfig() (*sql.DB, error) {
 	cfg := mysql.NewConfig()
 	cfg.User = "user"
@@ -199,10 +206,10 @@ func GetMonth(m string) (int, error) {
 	}
 }
 
+// add an expense 
 func AddExp(db *sql.DB, args []string) (*sql.Result, error) {
-	var name	string
-	var amount 	float64
-	var date	string
+	var name, date				string
+	var amount, limit, total 	float64
 
 	nameUsage 	:= "the name of the expense"
 	amountUsage := "the cost of the expense"
@@ -235,6 +242,9 @@ func AddExp(db *sql.DB, args []string) (*sql.Result, error) {
 		return nil, nil
 	}
 
+	b := db.QueryRow("SELECT threshold FROM budget LIMIT 1")
+	b.Scan(&limit)
+
 	var exeErr error
 	var res sql.Result
 	if date == "" {
@@ -247,12 +257,21 @@ func AddExp(db *sql.DB, args []string) (*sql.Result, error) {
 		return nil, exeErr
 	}
 
+	// update budget and warn accordingly
+	t := db.QueryRow("SELECT SUM(amount) FROM expenses")
+	t.Scan(&total)
+
+	if (limit > 0 && total > limit) {
+		fmt.Println("WARNING: budget exceeded")
+	}
 	fmt.Println("added: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
 	return &res, nil
 }
 
+// list all expenses
 func ListExp(db *sql.DB, args []string) (error) {
 	var month string
+
 	monthUsage := "month to filter by"
 
 	fs := flag.NewFlagSet("list", flag.ExitOnError)
@@ -312,19 +331,24 @@ func ListExp(db *sql.DB, args []string) (error) {
 	for rows.Next() {
 		var exp Expense
 
-		scanErr := rows.Scan(&exp.ID, &exp.Name, &exp.Amount, &exp.Date) 
+		scanErr := rows.Scan(&exp.ID, &exp.Name, &exp.Amount, &exp.Date, &exp.Created) 
 		if scanErr != nil {
 			return scanErr
 		}
 		fmt.Printf("%d  %s\t\t$%.2f\t\t%s\n", exp.ID, exp.Name, exp.Amount, exp.Date)
 	}
 
+	// warn user if budget has been exceeded
+	// optionally label the expense that overstepped the budget as well
+
 	return nil
 }
 
+// sum all expenses in latest month
 func SumExp(db *sql.DB, args []string) (error) {
 	var month string
-	var total float64
+	var total, limit float64
+
 	monthUsage := "month to filter by"
 
 	fs := flag.NewFlagSet("summary", flag.ExitOnError)
@@ -341,6 +365,9 @@ func SumExp(db *sql.DB, args []string) (error) {
 	}
 
 	q := "SELECT SUM(amount) FROM expenses"
+
+	b := db.QueryRow("SELECT threshold FROM budget LIMIT 1")
+	b.Scan(&limit)
 
 	if month != "" {
 		unsafeMonth := Sanitize(month, "month")
@@ -374,13 +401,21 @@ func SumExp(db *sql.DB, args []string) (error) {
 		return scanErr
 	}
 
+	// warn user if budget has been exceeded
+	if (limit > 0 && total > limit) {
+		fmt.Println("WARNING: budget exceeded")
+	}
+
 	fmt.Printf("Total: %.2f\n", total)
+	fmt.Printf("Budget: %.2f\n", limit)
 	return nil
 }
 
+// change parameters of an expense(s)
 func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 	var id 		int
 	var amount 	float64
+	var budget 	float64
 	var name	string
 	var date	string
 
@@ -388,6 +423,7 @@ func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 	amountUsage		:= "the cost of the expense"
 	nameUsage 		:= "the name of the expense"
 	dateUsage		:= "the date of the transaction"
+	budgetUsage		:= "the budget that must not be exceeded"
 
 	fs := flag.NewFlagSet("update", flag.ExitOnError)
 	fs.Usage = func() {
@@ -396,6 +432,7 @@ func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 		fmt.Printf("-n, --name\n\t%s\n", nameUsage)
 		fmt.Printf("-d, --date\n\t%s\n", dateUsage)
 		fmt.Printf("-a, --amount\n\t%s\n", amountUsage)
+		fmt.Printf("-b, --budget\n\t%s\n", budgetUsage)
 	}
 
 	fs.IntVar(&id, "id", 0, idUsage)
@@ -409,6 +446,9 @@ func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 	fs.Float64Var(&amount, "amount", 0, "")
 	fs.Float64Var(&amount, "a", 0, "")
 
+	fs.Float64Var(&budget, "budget", 0, "")
+	fs.Float64Var(&budget, "b", 0, "")
+
 	if err := fs.Parse(args); err != nil {
 		fmt.Errorf("parse: %w", err)
 		return nil, err
@@ -421,6 +461,8 @@ func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 		return nil, nil
 	}
 
+	// establish a function to validate flags
+	// can you update an expense and the budget simultaneously?
 	var exeErr error
 	var res sql.Result
 	switch {
@@ -436,10 +478,13 @@ func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 		return nil, exeErr
 	}
 
+	// update budget
+
 	fmt.Println("updated: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
 	return &res, nil
 } 
 
+// delete an expense
 func DeleteExp(db *sql.DB, args []string) (*sql.Result, error) {
 	var id 		string
 	// var amount 	float64
@@ -486,11 +531,14 @@ func DeleteExp(db *sql.DB, args []string) (*sql.Result, error) {
 		return nil, exeErr
 	}
 
+	// update budget
+
 	// update delete message
 	// fmt.Println("deleted: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
 	return &res, nil
 }
 
+// export the table to a CSV
 func Export(db *sql.DB, args []string) (error) {
 	var filename string
 	// var filter string
@@ -549,7 +597,7 @@ func Export(db *sql.DB, args []string) (error) {
 	for rows.Next() {
 		var exp Expense
 
-		scanErr := rows.Scan(&exp.ID, &exp.Date, &exp.Name, &exp.Amount) 
+		scanErr := rows.Scan(&exp.ID, &exp.Date, &exp.Name, &exp.Amount, &exp.Created) 
 		if scanErr != nil {
 			return scanErr
 		}
