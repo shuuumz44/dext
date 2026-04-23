@@ -87,6 +87,9 @@ func main() {
 	case "export":
 		opErr = Export(db, args)
 
+	case "budget":
+		_, opErr = Budget(db, args)
+
 	default:
 		fmt.Println(help)
 		return
@@ -257,7 +260,7 @@ func AddExp(db *sql.DB, args []string) (*sql.Result, error) {
 		return nil, exeErr
 	}
 
-	// update budget and warn accordingly
+	// compare to budget warn accordingly
 	t := db.QueryRow("SELECT SUM(amount) FROM expenses")
 	t.Scan(&total)
 
@@ -271,6 +274,7 @@ func AddExp(db *sql.DB, args []string) (*sql.Result, error) {
 // list all expenses
 func ListExp(db *sql.DB, args []string) (error) {
 	var month string
+	var total, limit float64
 
 	monthUsage := "month to filter by"
 
@@ -288,6 +292,9 @@ func ListExp(db *sql.DB, args []string) (error) {
 	}
 
 	q := "SELECT * FROM expenses"
+
+	b := db.QueryRow("SELECT threshold FROM budget LIMIT 1")
+	b.Scan(&limit)
 
 	if month != "" {
 		unsafeMonth := Sanitize(month, "month")
@@ -336,10 +343,12 @@ func ListExp(db *sql.DB, args []string) (error) {
 			return scanErr
 		}
 		fmt.Printf("%d  %s\t\t$%.2f\t\t%s\n", exp.ID, exp.Name, exp.Amount, exp.Date)
+		total += exp.Amount
 	}
 
-	// warn user if budget has been exceeded
-	// optionally label the expense that overstepped the budget as well
+	if (limit > 0 && total > limit) {
+		fmt.Println("WARNING: budget exceeded")
+	}
 
 	return nil
 }
@@ -401,7 +410,6 @@ func SumExp(db *sql.DB, args []string) (error) {
 		return scanErr
 	}
 
-	// warn user if budget has been exceeded
 	if (limit > 0 && total > limit) {
 		fmt.Println("WARNING: budget exceeded")
 	}
@@ -415,7 +423,6 @@ func SumExp(db *sql.DB, args []string) (error) {
 func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 	var id 		int
 	var amount 	float64
-	var budget 	float64
 	var name	string
 	var date	string
 
@@ -423,7 +430,6 @@ func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 	amountUsage		:= "the cost of the expense"
 	nameUsage 		:= "the name of the expense"
 	dateUsage		:= "the date of the transaction"
-	budgetUsage		:= "the budget that must not be exceeded"
 
 	fs := flag.NewFlagSet("update", flag.ExitOnError)
 	fs.Usage = func() {
@@ -432,7 +438,6 @@ func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 		fmt.Printf("-n, --name\n\t%s\n", nameUsage)
 		fmt.Printf("-d, --date\n\t%s\n", dateUsage)
 		fmt.Printf("-a, --amount\n\t%s\n", amountUsage)
-		fmt.Printf("-b, --budget\n\t%s\n", budgetUsage)
 	}
 
 	fs.IntVar(&id, "id", 0, idUsage)
@@ -445,9 +450,6 @@ func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 
 	fs.Float64Var(&amount, "amount", 0, "")
 	fs.Float64Var(&amount, "a", 0, "")
-
-	fs.Float64Var(&budget, "budget", 0, "")
-	fs.Float64Var(&budget, "b", 0, "")
 
 	if err := fs.Parse(args); err != nil {
 		fmt.Errorf("parse: %w", err)
@@ -462,7 +464,6 @@ func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 	}
 
 	// establish a function to validate flags
-	// can you update an expense and the budget simultaneously?
 	var exeErr error
 	var res sql.Result
 	switch {
@@ -477,8 +478,6 @@ func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 	if exeErr != nil {
 		return nil, exeErr
 	}
-
-	// update budget
 
 	fmt.Println("updated: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
 	return &res, nil
@@ -535,6 +534,45 @@ func DeleteExp(db *sql.DB, args []string) (*sql.Result, error) {
 
 	// update delete message
 	// fmt.Println("deleted: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
+	return &res, nil
+}
+
+// manage the budget
+func Budget(db *sql.DB, args []string) (*sql.Result, error) {
+	var amount 	float64 
+
+	amountUsage		:= "the amount to set the budget"
+
+	fs := flag.NewFlagSet("budget", flag.ExitOnError)
+	fs.Usage = func() {
+		fmt.Println("budget usage:")
+		fmt.Printf("-a, --amount\n\t%s\n", amountUsage)
+	}
+
+	fs.Float64Var(&amount, "amount", -1.1111, "")
+	fs.Float64Var(&amount, "a", -1.1111, "")
+
+	if err := fs.Parse(args); err != nil {
+		fmt.Errorf("parse: %w", err)
+		return nil, err
+	}
+
+	if (amount < 0) {
+		if (amount == -1.1111) {
+			var b float64
+			row := db.QueryRow("SELECT threshold FROM budget WHERE id=0")
+			row.Scan(&b)
+			fmt.Printf("budget: %.2f\n", b)
+		}
+		return nil, nil
+	}
+
+	res, exeErr := db.Exec("UPDATE budget SET threshold=? WHERE id=0", amount)
+	if exeErr != nil {
+		return nil, exeErr
+	}
+
+	fmt.Printf("set budget to: %.2f\n", amount)
 	return &res, nil
 }
 

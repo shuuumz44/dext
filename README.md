@@ -44,16 +44,11 @@
             Filter the displayed expenses by their category.
 
 # TODO
-    * add budget
-        @ do you include the budget automatically when listing all expenses?
-            what about when the list filters by a month?
-        @ would a budget flag in ListExp() add the budget alongside the list,
-            or display the budget exclusively?
-        @ Or should displaying the budget alone be a separate function?
-        @ Is specifying to display the budget redundant? Should it be a bool
-            added as a configuration option?
-
+    * UpdateExp() alters budget
     * add categories (tags)
+    * make config flag
+        ^ toggle do not add expenses that exceed budget
+        ^ toggle if budget is present in listing expenses
     * DeleteExp()
         ^ select by amount/date/name
     * Querying
@@ -74,8 +69,6 @@
 # ERRORS
 
 # IDEAS
-    * add flag for overdraft behavior. Either allow or disallow adding an expense that exceeds the limit.
-    * add a command (and table) to handle configuration settings such as overdrafting behavior.
     * make secondary database for testing
     * streamline setup
     * abstract generic flag parsing, using empty interface (?)

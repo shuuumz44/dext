@@ -13,3 +13,5 @@ CREATE TABLE budget (
 	id 				INT					DEFAULT 0,
 	threshold		DECIMAL(20,2)
 );
+
+INSERT INTO budget (id, threshold) VALUES(0, 0.0);
