@@ -421,10 +421,9 @@ func SumExp(db *sql.DB, args []string) (error) {
 
 // change parameters of an expense(s)
 func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
-	var id 		int
-	var amount 	float64
-	var name	string
-	var date	string
+	var id 						int
+	var amount, total, limit	float64
+	var name, date				string
 
 	idUsage 		:= "the ID of the expense"
 	amountUsage		:= "the cost of the expense"
@@ -463,7 +462,7 @@ func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 		return nil, nil
 	}
 
-	// establish a function to validate flags
+	// make a function to validate flags
 	var exeErr error
 	var res sql.Result
 	switch {
@@ -477,6 +476,16 @@ func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 
 	if exeErr != nil {
 		return nil, exeErr
+	}
+
+	t := db.QueryRow("SELECT SUM(amount) FROM expenses")
+	t.Scan(&total)
+
+	b := db.QueryRow("SELECT threshold FROM budget LIMIT 1")
+	b.Scan(&limit)
+
+	if (limit > 0 && total > limit) {
+		fmt.Println("WARNING: budget exceeded")
 	}
 
 	fmt.Println("updated: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
@@ -530,10 +539,6 @@ func DeleteExp(db *sql.DB, args []string) (*sql.Result, error) {
 		return nil, exeErr
 	}
 
-	// update budget
-
-	// update delete message
-	// fmt.Println("deleted: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
 	return &res, nil
 }
 
