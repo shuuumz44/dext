@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"unicode"
 
 	"github.com/go-sql-driver/mysql"
@@ -20,6 +21,11 @@ type Expense struct {
 	Name	string
 	Date	string
 	Created string
+}
+
+type Column struct {
+	columnName	string
+	columnValue	any
 }
 
 var help string =
@@ -51,6 +57,9 @@ OPTIONS:
 
 	-b, --budget
 		set the amount of the budget
+
+	-c, --category
+		manage categories
 `
 
 
@@ -84,11 +93,14 @@ func main() {
 	case "delete":
 		_, opErr = DeleteExp(db, args)
 		
-	case "export":
-		opErr = Export(db, args)
-
 	case "budget":
 		_, opErr = Budget(db, args)
+
+	case "category":
+		_, opErr = Category(db, args)
+
+	case "export":
+		opErr = Export(db, args)
 
 	default:
 		fmt.Println(help)
@@ -123,46 +135,33 @@ func GetConfig() (*sql.DB, error) {
 	return db, nil
 }
 
-// determine inputted string is not malicious.
-func Sanitize(str string, usage string) (error) {
-	switch usage {
-	case "id":
-		for _, a := range str {
-			if a != ',' && !unicode.IsNumber(a) && !unicode.IsSpace(a) {
-				return errors.New("unsafe id")
-			}
+// determine inputted string is not malicious
+func Sanitize(str string) (error) {
+	invalid := errors.New("invalid string")
+
+	if len(str) >= 10 {
+		return invalid
+	}
+
+	var r rune
+	for i, a := range str {
+		if i==0 {
+			r = a
+			continue
 		}
 
-	case "month":
-		invalid := errors.New("invalid month")
-
-		if len(str) >= 10 {
+		if unicode.IsNumber(a) && !unicode.IsNumber(r) {
+			return invalid
+		} else if unicode.IsLetter(a) && !unicode.IsLetter(r) {
 			return invalid
 		}
-
-		var r rune
-		for i, a := range str {
-			if i==0 {
-				r = a
-				continue
-			}
-
-			if unicode.IsNumber(a) && !unicode.IsNumber(r) {
-				return invalid
-			} else if unicode.IsLetter(a) && !unicode.IsLetter(r) {
-				return invalid
-			}
-			r = a
-		}
-
-	default:
-		return errors.New("usage unrecognized")
+		r = a
 	}
 
 	return nil
 }
 
-// determine inputted string is a valid month.
+// determine inputted string is a valid month
 func GetMonth(m string) (int, error) {
 	invalid := errors.New("invalid month")
 
@@ -209,21 +208,71 @@ func GetMonth(m string) (int, error) {
 	}
 }
 
+// dynamically create and execute sql query through a []Column slice
+func ParseExec(db *sql.DB, values []Column) (*sql.Result, error) {
+	// **make abstractions for UPDATE and DELETE with macros
+
+	var r, v strings.Builder
+
+	for i, c := range values {
+		if i == 0 {
+			fmt.Fprint(&r, c.columnName)
+			fmt.Fprint(&v, "?")
+		} else {
+			fmt.Fprintf(&r, ", %s", c.columnName)
+			fmt.Fprintf(&v, ", ?")
+		}
+	}
+
+	rr := r.String()
+	vv := v.String()
+	q := fmt.Sprintf("INSERT INTO expenses (%s) VALUES (%s)", rr, vv)
+	fmt.Printf("r: %s\nv: %s\n", rr, vv)
+	fmt.Printf("query: %s\n", q)
+
+	var exeErr error
+	var res sql.Result
+	switch len(values) {
+	case 1:
+		res, exeErr = db.Exec(q, 	values[0].columnValue)
+	case 2:
+		res, exeErr = db.Exec(q, 	values[0].columnValue, 
+									values[1].columnValue,
+								)
+	case 3:
+		res, exeErr = db.Exec(q, 	values[0].columnValue,
+									values[1].columnValue, 
+									values[2].columnValue,
+								)
+	case 4:
+		res, exeErr = db.Exec(q, 	values[0].columnValue,
+									values[1].columnValue,
+									values[2].columnValue,
+									values[3].columnValue,
+								)
+	}
+
+	return &res, exeErr
+}
+
 // add an expense 
 func AddExp(db *sql.DB, args []string) (*sql.Result, error) {
-	var name, date				string
+	var name, date, category	string
 	var amount, limit, total 	float64
+	var values []Column
 
-	nameUsage 	:= "the name of the expense"
-	amountUsage := "the cost of the expense"
-	dateUsage 	:= "the date of the transaction"
+	nameUsage 		:= "the name of the expense"
+	dateUsage 		:= "the date of the transaction"
+	amountUsage 	:= "the cost of the expense"
+	categoryUsage 	:= "the category of the expense"
 
 	fs := flag.NewFlagSet("add", flag.ExitOnError)
 	fs.Usage = func() {
 		fmt.Println("add usage:")
 		fmt.Printf("-n, --name\n\t%s\n", nameUsage)
-		fmt.Printf("-a, --amount\n\t%s\n", amountUsage)
 		fmt.Printf("-d, --date\n\t%s\n", dateUsage)
+		fmt.Printf("-a, --amount\n\t%s\n", amountUsage)
+		fmt.Printf("-c, --category\n\t%s\n", categoryUsage)
 	}
 
 	fs.StringVar(&name, "name", "", "")
@@ -231,6 +280,9 @@ func AddExp(db *sql.DB, args []string) (*sql.Result, error) {
 
 	fs.StringVar(&date, "date", "", "")
 	fs.StringVar(&date, "d", "", "")
+
+	fs.StringVar(&category, "category", "", "")
+	fs.StringVar(&category, "c", "", "")
 
 	fs.Float64Var(&amount, "amount", 0, "")
 	fs.Float64Var(&amount, "a", 0, "")
@@ -245,30 +297,32 @@ func AddExp(db *sql.DB, args []string) (*sql.Result, error) {
 		return nil, nil
 	}
 
-	b := db.QueryRow("SELECT threshold FROM budget LIMIT 1")
-	b.Scan(&limit)
-
-	var exeErr error
-	var res sql.Result
-	if date == "" {
-		res, exeErr = db.Exec("INSERT INTO expenses (name, amount) VALUES (?, ?)", name, amount)
-	} else { 
-		res, exeErr = db.Exec("INSERT INTO expenses (name, amount, purchased) VALUES (?, ?, ?)", name, amount, date)
+	if name != "" {
+		values = append(values, Column {"name", name})
+	}
+	if amount != 0 {
+		values = append(values, Column {"amount", amount})
+	}
+	if date != "" {
+		values = append(values, Column {"purchased", date})
 	}
 
+	res, exeErr := ParseExec(db, values)
 	if exeErr != nil {
 		return nil, exeErr
 	}
 
-	// compare to budget warn accordingly
+	// compare to budget, warn accordingly
+	b := db.QueryRow("SELECT threshold FROM budget LIMIT 1")
+	b.Scan(&limit)
 	t := db.QueryRow("SELECT SUM(amount) FROM expenses")
 	t.Scan(&total)
 
 	if (limit > 0 && total > limit) {
 		fmt.Println("WARNING: budget exceeded")
 	}
-	fmt.Println("added: " + name + " - $" + strconv.FormatFloat(amount, 'f', 2, 64))
-	return &res, nil
+	fmt.Printf("added: %s - $%.2f\n", name, amount)
+	return res, nil
 }
 
 // list all expenses
@@ -297,7 +351,7 @@ func ListExp(db *sql.DB, args []string) (error) {
 	b.Scan(&limit)
 
 	if month != "" {
-		unsafeMonth := Sanitize(month, "month")
+		unsafeMonth := Sanitize(month)
 		if unsafeMonth != nil {
 			return unsafeMonth
 		}
@@ -379,7 +433,7 @@ func SumExp(db *sql.DB, args []string) (error) {
 	b.Scan(&limit)
 
 	if month != "" {
-		unsafeMonth := Sanitize(month, "month")
+		unsafeMonth := Sanitize(month)
 		if unsafeMonth != nil {
 			return unsafeMonth
 		}
@@ -426,9 +480,9 @@ func UpdateExp(db *sql.DB, args []string) (*sql.Result, error) {
 	var name, date				string
 
 	idUsage 		:= "the ID of the expense"
-	amountUsage		:= "the cost of the expense"
 	nameUsage 		:= "the name of the expense"
 	dateUsage		:= "the date of the transaction"
+	amountUsage		:= "the cost of the expense"
 
 	fs := flag.NewFlagSet("update", flag.ExitOnError)
 	fs.Usage = func() {
@@ -528,11 +582,6 @@ func DeleteExp(db *sql.DB, args []string) (*sql.Result, error) {
 		return nil, nil
 	}
 
-	sanErr := Sanitize(id, "id")
-	if sanErr != nil {
-		return nil, sanErr
-	}
-	
 	execution := fmt.Sprintf("DELETE FROM expenses WHERE id IN (%s)", id)
 	res, exeErr := db.Exec(execution)
 	if exeErr != nil {
@@ -579,6 +628,34 @@ func Budget(db *sql.DB, args []string) (*sql.Result, error) {
 
 	fmt.Printf("set budget to: %.2f\n", amount)
 	return &res, nil
+}
+
+// manage categories
+func Category(db *sql.DB, args []string) (*sql.Result, error) {
+	var name 	string 
+
+	nameUsage := "the name of the new category"
+
+	fs := flag.NewFlagSet("category", flag.ExitOnError)
+	fs.Usage = func() {
+		fmt.Println("category usage:")
+		fmt.Printf("-n, --name\n\t%s\n", nameUsage)
+	}
+
+	fs.StringVar(&name, "name", "", "")
+	fs.StringVar(&name, "n", "", "")
+
+	if err := fs.Parse(args); err != nil {
+		fmt.Errorf("parse: %w", err)
+		return nil, err
+	}
+
+	unsafeName := Sanitize(name)
+	if unsafeName != nil {
+		return nil, errors.New("unsafe category name")
+	}
+
+	return nil, nil
 }
 
 // export the table to a CSV

@@ -44,8 +44,7 @@
             Filter the displayed expenses by their category.
 
 # TODO
-    * UpdateExp() alters budget
-    * add categories (tags)
+    * add categories
     * make config flag
         ^ toggle do not add expenses that exceed budget
         ^ toggle if budget is present in listing expenses
@@ -61,20 +60,19 @@
     * Output
         ^ space output rows cleanly
         ^ add export to JSON
-    * add Created column (DATETIME)
 
 # TEST
     * Summary()
+    * ParseExec()
 
 # ERRORS
 
 # IDEAS
-    * make secondary database for testing
+    * abstract generic flag parsing 
     * streamline setup
-    * abstract generic flag parsing, using empty interface (?)
-    * abstract query parsing. (sprintf() + sanitization)
-    * output formatting options
     * manage user credentials/authentication 
+    * output formatting options
+    * make secondary database for testing
     * multiple tables/databases
 
 # NOTES
