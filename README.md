@@ -45,6 +45,7 @@
 
 # TODO
     * add categories
+    * ParseExec(): other cases
     * make config flag
         ^ toggle do not add expenses that exceed budget
         ^ toggle if budget is present in listing expenses
@@ -66,6 +67,7 @@
     * ParseExec()
 
 # ERRORS
+    * Sanitize() mismatched arguments in test
 
 # IDEAS
     * abstract generic flag parsing 

@@ -16,17 +16,27 @@ import (
 )
 
 type Expense struct {
-	ID 		int
-	Amount	float64
-	Name	string
-	Date	string
-	Created string
+	ID 			int
+	Amount		float64
+	Name		string
+	Date		string
+	Created 	string
+	Category	string
 }
 
 type Column struct {
 	columnName	string
 	columnValue	any
 }
+
+type execAction int
+
+const (
+	INSERT	execAction = iota
+	SELECT
+	UPDATE
+	DELETE
+)
 
 var help string =
 `Usage: dext [COMMAND] [OPTION...]
@@ -140,7 +150,7 @@ func Sanitize(str string) (error) {
 	invalid := errors.New("invalid string")
 
 	if len(str) >= 10 {
-		return invalid
+		return errors.New("string too long")
 	}
 
 	var r rune
@@ -208,12 +218,23 @@ func GetMonth(m string) (int, error) {
 	}
 }
 
-// dynamically create and execute sql query through a []Column slice
-func ParseExec(db *sql.DB, values []Column) (*sql.Result, error) {
-	// **make abstractions for UPDATE and DELETE with macros
+// dynamically create and execute sql query through a []Column
+func ParseExec(db *sql.DB, values []Column, action execAction) (*sql.Result, error) {
 
 	var r, v strings.Builder
 
+	switch action {
+	case INSERT:
+		//
+	case SELECT:
+		//
+	case UPDATE:
+		//
+	case DELETE:
+		//
+	}
+
+	var list []any
 	for i, c := range values {
 		if i == 0 {
 			fmt.Fprint(&r, c.columnName)
@@ -222,6 +243,7 @@ func ParseExec(db *sql.DB, values []Column) (*sql.Result, error) {
 			fmt.Fprintf(&r, ", %s", c.columnName)
 			fmt.Fprintf(&v, ", ?")
 		}
+		list = append(list, c.columnValue)
 	}
 
 	rr := r.String()
@@ -230,28 +252,7 @@ func ParseExec(db *sql.DB, values []Column) (*sql.Result, error) {
 	fmt.Printf("r: %s\nv: %s\n", rr, vv)
 	fmt.Printf("query: %s\n", q)
 
-	var exeErr error
-	var res sql.Result
-	switch len(values) {
-	case 1:
-		res, exeErr = db.Exec(q, 	values[0].columnValue)
-	case 2:
-		res, exeErr = db.Exec(q, 	values[0].columnValue, 
-									values[1].columnValue,
-								)
-	case 3:
-		res, exeErr = db.Exec(q, 	values[0].columnValue,
-									values[1].columnValue, 
-									values[2].columnValue,
-								)
-	case 4:
-		res, exeErr = db.Exec(q, 	values[0].columnValue,
-									values[1].columnValue,
-									values[2].columnValue,
-									values[3].columnValue,
-								)
-	}
-
+	res, exeErr := db.Exec(q, list)
 	return &res, exeErr
 }
 
@@ -306,8 +307,11 @@ func AddExp(db *sql.DB, args []string) (*sql.Result, error) {
 	if date != "" {
 		values = append(values, Column {"purchased", date})
 	}
+	if category != "" {
+		values = append(values, Column {"category", category})
+	}
 
-	res, exeErr := ParseExec(db, values)
+	res, exeErr := ParseExec(db, values, INSERT)
 	if exeErr != nil {
 		return nil, exeErr
 	}
@@ -387,16 +391,16 @@ func ListExp(db *sql.DB, args []string) (error) {
 	if colErr != nil {
 		return colErr
 	}
-	fmt.Printf("%s %s\t\t%s\t\t%s\n", col[0], col[1], col[2], col[3])
+	fmt.Printf("%s\t%s\t\t%s\t\t%s\t\t%s\t\t%s\n", col[0], col[1], col[2], col[3], col[4], col[5])
 
 	for rows.Next() {
 		var exp Expense
 
-		scanErr := rows.Scan(&exp.ID, &exp.Name, &exp.Amount, &exp.Date, &exp.Created) 
+		scanErr := rows.Scan(&exp.ID, &exp.Category, &exp.Name, &exp.Amount, &exp.Date, &exp.Created) 
 		if scanErr != nil {
 			return scanErr
 		}
-		fmt.Printf("%d  %s\t\t$%.2f\t\t%s\n", exp.ID, exp.Name, exp.Amount, exp.Date)
+		fmt.Printf("%d  %s\t\t$%.2f\t\t%s\t\t%s\t\t%s\n", exp.ID, exp.Name, exp.Amount, exp.Date, exp.Created, exp.Category)
 		total += exp.Amount
 	}
 
@@ -408,9 +412,10 @@ func ListExp(db *sql.DB, args []string) (error) {
 }
 
 // sum all expenses in latest month
+// ** add filter for category
 func SumExp(db *sql.DB, args []string) (error) {
-	var month string
-	var total, limit float64
+	var month, category string
+	var total, limit 	float64
 
 	monthUsage := "month to filter by"
 
