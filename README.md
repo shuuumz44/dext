@@ -27,25 +27,27 @@
 
 # OPTIONS
     **CRUD Operations**
-        **-a add**
+        **add**
             add an expense into the database.
         
-        **-l list** 
-            List all expenses. Can be combined with the **-f** (**filter**) category.
+        **list** 
+            List all expenses. 
 
-        **-s summary**
+        **summary**
             Print the total cost of expenses.
         
-        **-d delete** ID
+        **delete** ID
             Delete the expense specified by the id(s).
 
-    **Output Control**
-        **-f filter** CATEGORY
-            Filter the displayed expenses by their category.
+    **Database**
+        **category**
+            Manipulate the existing categories.
 
 # TODO
-    * add categories
-    * ParseExec(): other cases
+    * make so many tests for this God Willing
+should've went with TDD...
+    * ParseExec(): UPDATE/DELETE
+    * add back in filter latest year (when filtering by month)
     * make config flag
         ^ toggle do not add expenses that exceed budget
         ^ toggle if budget is present in listing expenses
@@ -62,19 +64,26 @@
         ^ space output rows cleanly
         ^ add export to JSON
 
+# INTUITION
+    * db.Exec() and db.Query() return different types in the sql package. Therefore there should be two
+    separate functions to parse them.
+
 # TEST
+    * AddExp()
+        - handle any missing values
     * Summary()
     * ParseExec()
+    * CollectFlag()
+    * Sanitize()
 
 # ERRORS
     * Sanitize() mismatched arguments in test
 
 # IDEAS
-    * abstract generic flag parsing 
     * streamline setup
     * manage user credentials/authentication 
     * output formatting options
-    * make secondary database for testing
+    * make testing utilize a temporary database/directory
     * multiple tables/databases
 
 # NOTES
@@ -89,3 +98,4 @@
     * if you have multiple .go files and/or your main file isn't named 'main.go', go build might
     tell you it found packages and not actually create the output file. This began after I added
     'dext_test.go". If this happens, just replace . with your program name (output file).
+    * errors should be found and handled in testing, not while compiling/running.

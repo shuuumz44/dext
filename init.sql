@@ -14,7 +14,7 @@ CREATE TABLE categories (
 DROP TABLE IF EXISTS expenses;
 CREATE TABLE expenses (
 	id				INT AUTO_INCREMENT	PRIMARY KEY,
-	category		INT,
+	category		INT					NOT NULL	DEFAULT 0,
 	name			VARCHAR(255),
 	amount			DECIMAL(20,2)		NOT NULL	DEFAULT 0,
 	purchased		DATE 				NOT NULL	DEFAULT (CURRENT_DATE()),
